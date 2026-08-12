@@ -1,7 +1,7 @@
 import secrets
 from typing import Annotated
 
-from fastapi import APIRouter, Cookie, Depends, Query, Response, status
+from fastapi import APIRouter, Cookie, Depends, Query, Request, Response, status
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
@@ -74,6 +74,16 @@ def complete_login(
     for name in ("direhire_oauth_state", "direhire_oidc_nonce", "direhire_pkce_verifier"):
         response.delete_cookie(name, path="/api/v1/auth")
     return response
+
+
+@router.get("/csrf-token")
+def csrf_token(request: Request, response: Response, user: User) -> dict[str, str]:
+    del user
+    token = request.cookies.get(get_settings().csrf_cookie_name)
+    if not token:
+        raise AppError("CSRF_TOKEN_MISSING", "The security token is unavailable.", 401)
+    response.headers["Cache-Control"] = "no-store"
+    return {"csrf_token": token}
 
 
 @router.delete("/session", status_code=status.HTTP_204_NO_CONTENT)

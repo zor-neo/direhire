@@ -8,7 +8,15 @@ Production deployment is manual, serialized, and protected by the GitHub `produc
 2. Run **Deploy production** with `apply=false`. It builds and scans immutable ECR images tagged with the Git SHA and creates a saved Terraform plan using digest-pinned image URIs.
 3. Review the plan, especially IAM, public access, data lifecycle, queue mappings, budgets, and any migration.
 4. Re-run for the same commit with `apply=true` after production-environment approval. Migration failure stops before frontend publication.
-5. Smoke-check `/api/v1/health`, Cognito login/callback/logout, one synthetic Watch run, Inbox visibility, and private-file ownership. Record release SHA and build time.
+5. Run the read-only public preflight from the repository root (use the reviewed production URLs):
+
+   ```powershell
+   python -m uv run python scripts/smoke_production.py `
+     --frontend-url https://jobalert.zorneo.dev `
+     --api-url https://jobalert-api.zorneo.dev/api/v1
+   ```
+
+   Do not use an empty Lambda console test event for the API function: Mangum requires an API Gateway HTTP event and will correctly reject an arbitrary payload. Then complete Cognito login/callback/logout, one synthetic Watch run, Inbox visibility, and private-file ownership in the deployed UI. Record release SHA and build time.
 
 ## Rollback
 

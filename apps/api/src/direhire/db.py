@@ -3,7 +3,7 @@ from collections.abc import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
-from direhire.config import get_settings
+from direhire.config import get_settings, sqlalchemy_database_url
 
 
 class Base(DeclarativeBase):
@@ -19,6 +19,7 @@ if settings.database_url_parameter:
         Name=settings.database_url_parameter, WithDecryption=True
     )
     database_url = str(response["Parameter"]["Value"])
+database_url = sqlalchemy_database_url(database_url)
 engine_options: dict[str, object] = {"pool_pre_ping": True}
 if database_url.startswith("postgresql+"):
     engine_options.update(pool_size=3, max_overflow=2)

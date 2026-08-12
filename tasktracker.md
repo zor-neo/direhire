@@ -1,6 +1,6 @@
 # DireHire P0 Task Tracker
 
-Last updated: 2026-08-12
+Last updated: 2026-08-13
 
 ## How to use this file
 
@@ -34,6 +34,8 @@ Read `AGENTS.md`, `projectSpecs.md`, and this file before making a non-trivial c
 - Audited database kill switches protect external/expensive features. Admin operations expose source circuits, stuck work, and 30-day AI token/cost/cache telemetry without private career content.
 - A synthetic local PostgreSQL backup/restore drill restored migration `20260812_0018`, one user, one Watch, and eight platform controls into a disposable database; the drill databases were removed afterward.
 - P0 implementation and local acceptance verification are complete. Remaining actions are production environment provisioning, reviewed Terraform apply, and post-deploy smoke checks—not application implementation backlog.
+- Finalization audit fixed sibling-origin CSRF bootstrap, normalized standard PostgreSQL/Neon URLs to the installed psycopg v3 driver, and replaced invalid empty-payload Lambda console checks with a read-only HTTPS production smoke script.
+- The previously empty production Neon database was migrated through Alembic `20260812_0018`; 44 schema tables were verified and no synthetic user data was seeded.
 - No production infrastructure has been created or modified.
 - No secrets or production data are present.
 
@@ -134,13 +136,14 @@ Read `AGENTS.md`, `projectSpecs.md`, and this file before making a non-trivial c
 - [x] Built Next.js static output locally (`npm run build`).
 - [x] User is modifying frontend UI to satisfaction before final deployment to S3.
 - [x] Sync UI build to S3 and invalidate CloudFront cache.
+- [x] Apply and verify production database migrations at Alembic head `20260812_0018`.
 - [ ] Final smoke check and testing.
 
 ## Verification log
 
 - `python -m ruff format .` — passed.
 - `python -m ruff check .` — passed.
-- `python -m uv run pytest` — 84 passed (tenant isolation, deletion, idempotency, outbox, public/private AI routing, tailored documents, Analyze-a-Job, coalescing, kill switches, worker routing, and launch-adapter fixtures).
+- `python -m uv run pytest` — 88 passed (tenant isolation, deletion, idempotency, outbox, public/private AI routing, cross-origin CSRF bootstrap, tailored documents, Analyze-a-Job, coalescing, kill switches, worker routing, and launch-adapter fixtures).
 - `corepack pnpm lint` — passed.
 - `corepack pnpm typecheck` — passed.
 - `corepack pnpm build` — passed; 12 static pages generated across all P0 product and operational routes.
@@ -154,6 +157,7 @@ Read `AGENTS.md`, `projectSpecs.md`, and this file before making a non-trivial c
 - High-confidence repository secret-pattern scan — passed; no secrets found outside excluded dependency/build directories.
 - Local synthetic PostgreSQL logical backup/restore drill — passed and recorded in `docs/operations/restore-drills.md`.
 - In-app browser visual bootstrap was unavailable because the integration rejected required sandbox metadata. Semantic accessibility, lint, type, and static-render gates passed; visual production smoke remains on the first-deployment checklist.
+- Read-only production HTTPS smoke passed for frontend/security headers, API health, credentialed CORS, protected-route error handling, and Cognito authorization-code + PKCE initiation. Authenticated login/mutation, Inbox, and private-file ownership remain on the final human walkthrough.
 
 ## Known environment notes
 

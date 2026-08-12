@@ -178,13 +178,13 @@ resource "aws_lambda_function" "api" {
 resource "aws_lambda_function" "worker" {
   for_each = local.lambda_workloads
 
-  function_name                  = "direhire-${var.environment}-${each.key}"
-  package_type                   = "Image"
-  image_uri                      = var.runtime_image_uri
-  role                           = aws_iam_role.worker[each.key].arn
-  timeout                        = each.value.timeout
-  memory_size                    = each.value.memory
-  architectures                  = ["x86_64"]
+  function_name = "direhire-${var.environment}-${each.key}"
+  package_type  = "Image"
+  image_uri     = var.runtime_image_uri
+  role          = aws_iam_role.worker[each.key].arn
+  timeout       = each.value.timeout
+  memory_size   = each.value.memory
+  architectures = ["x86_64"]
   image_config { command = ["direhire.workers.runtime.lambda_handler"] }
   environment { variables = merge(local.common_environment, { DIREHIRE_WORKLOAD = each.key }) }
   depends_on = [aws_iam_role_policy_attachment.worker_logs]

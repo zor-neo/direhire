@@ -2,12 +2,12 @@ from logging.config import fileConfig
 
 from alembic import context
 from direhire import models  # noqa: F401
-from direhire.config import get_settings
+from direhire.config import get_settings, sqlalchemy_database_url
 from direhire.db import Base
 from sqlalchemy import engine_from_config, pool
 
 config = context.config
-config.set_main_option("sqlalchemy.url", get_settings().database_url)
+config.set_main_option("sqlalchemy.url", sqlalchemy_database_url(get_settings().database_url))
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 

@@ -5,6 +5,15 @@ from pydantic import Field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
+def sqlalchemy_database_url(value: str) -> str:
+    """Select the installed psycopg v3 driver for standard PostgreSQL URLs."""
+    if value.startswith("postgres://"):
+        return value.replace("postgres://", "postgresql+psycopg://", 1)
+    if value.startswith("postgresql://"):
+        return value.replace("postgresql://", "postgresql+psycopg://", 1)
+    return value
+
+
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="DIREHIRE_", env_file=".env", extra="ignore")
 

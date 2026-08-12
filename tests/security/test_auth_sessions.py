@@ -139,6 +139,48 @@ def test_cookie_auth_requires_csrf_for_mutation_and_not_for_read(
         app.dependency_overrides.clear()
 
 
+def test_authenticated_client_can_bootstrap_cross_origin_csrf_token(
+    session_factory: sessionmaker[Session],
+) -> None:
+    settings = make_settings()
+
+    def override_session():  # type: ignore[no-untyped-def]
+        with session_factory() as database:
+            yield database
+
+    with session_factory() as database:
+        issued = SessionService(database, settings).issue(add_user(database))
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        with TestClient(app) as client:
+            client.cookies.set(settings.session_cookie_name, issued.token)
+            client.cookies.set(settings.csrf_cookie_name, issued.csrf_token)
+            response = client.get("/api/v1/auth/csrf-token")
+            assert response.status_code == 200
+            assert response.json() == {"csrf_token": issued.csrf_token}
+            assert response.headers["cache-control"] == "no-store"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_csrf_bootstrap_requires_an_authenticated_session(
+    session_factory: sessionmaker[Session],
+) -> None:
+    def override_session():  # type: ignore[no-untyped-def]
+        with session_factory() as database:
+            yield database
+
+    app.dependency_overrides[get_session] = override_session
+    try:
+        with TestClient(app) as client:
+            response = client.get("/api/v1/auth/csrf-token")
+            assert response.status_code == 401
+            assert response.json()["error"]["code"] == "AUTHENTICATION_REQUIRED"
+    finally:
+        app.dependency_overrides.clear()
+
+
 def add_user(
     database: Session,
     *,

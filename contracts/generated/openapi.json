@@ -4097,6 +4097,31 @@
         ]
       }
     },
+    "/api/v1/auth/csrf-token": {
+      "get": {
+        "operationId": "csrf_token_api_v1_auth_csrf_token_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "additionalProperties": {
+                    "type": "string"
+                  },
+                  "title": "Response Csrf Token Api V1 Auth Csrf Token Get",
+                  "type": "object"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Csrf Token",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
     "/api/v1/auth/login": {
       "get": {
         "operationId": "begin_login_api_v1_auth_login_get",
