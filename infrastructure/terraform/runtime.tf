@@ -184,7 +184,6 @@ resource "aws_lambda_function" "worker" {
   role                           = aws_iam_role.worker[each.key].arn
   timeout                        = each.value.timeout
   memory_size                    = each.value.memory
-  reserved_concurrent_executions = each.value.concurrency
   architectures                  = ["x86_64"]
   image_config { command = ["direhire.workers.runtime.lambda_handler"] }
   environment { variables = merge(local.common_environment, { DIREHIRE_WORKLOAD = each.key }) }
