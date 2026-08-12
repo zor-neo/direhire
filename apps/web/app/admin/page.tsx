@@ -88,7 +88,7 @@ export default function AdminPage() {
         <thead><tr><th>Adapter</th><th>Health</th><th>Failures</th><th>Access</th><th>Actions</th></tr></thead>
         <tbody>{policies.map((policy) => <tr key={policy.adapter_key}>
           <td>{policy.adapter_key}</td>
-          <td><span className="badge">{policy.health}</span></td>
+          <td><span className={`badge ${policy.health.toLowerCase()}`}>{policy.health.replaceAll("_", " ")}</span></td>
           <td>{policy.failure_count}</td>
           <td>{policy.enabled ? "Enabled" : "Disabled"}</td>
           <td><div className="row-actions">

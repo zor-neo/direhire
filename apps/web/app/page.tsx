@@ -14,9 +14,24 @@ export default function Dashboard() {
         <div><p className="metric">Yours</p><p>You control every application and profile change.</p></div>
       </section>
       <section className="card-grid" aria-label="Common tasks">
-        <Link className="feature-card" href="/inbox"><span>01</span><h2>Review new jobs</h2><p>See why each role matched before any optional profile comparison.</p></Link>
-        <Link className="feature-card" href="/analyze"><span>02</span><h2>Analyze one job</h2><p>Use a public URL or keep pasted text private.</p></Link>
-        <Link className="feature-card" href="/applications"><span>03</span><h2>Track applications</h2><p>Record status, notes, interviews, and reminders on your terms.</p></Link>
+        <Link className="feature-card" href="/inbox">
+          <span className="card-index">01</span>
+          <h2>Review new jobs</h2>
+          <p>See why each role matched before any optional profile comparison.</p>
+          <span className="card-cta">Open Inbox →</span>
+        </Link>
+        <Link className="feature-card" href="/analyze">
+          <span className="card-index">02</span>
+          <h2>Analyze one job</h2>
+          <p>Use a public URL or keep pasted text private.</p>
+          <span className="card-cta">Analyze a role →</span>
+        </Link>
+        <Link className="feature-card" href="/applications">
+          <span className="card-index">03</span>
+          <h2>Track applications</h2>
+          <p>Record status, notes, interviews, and reminders on your terms.</p>
+          <span className="card-cta">View pipeline →</span>
+        </Link>
       </section>
     </>
   );
