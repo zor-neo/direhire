@@ -158,6 +158,7 @@ Read `AGENTS.md`, `projectSpecs.md`, and this file before making a non-trivial c
 - Local synthetic PostgreSQL logical backup/restore drill — passed and recorded in `docs/operations/restore-drills.md`.
 - In-app browser visual bootstrap was unavailable because the integration rejected required sandbox metadata. Semantic accessibility, lint, type, and static-render gates passed; visual production smoke remains on the first-deployment checklist.
 - Read-only production HTTPS smoke passed for frontend/security headers, API health, credentialed CORS, protected-route error handling, and Cognito authorization-code + PKCE initiation. Authenticated login/mutation, Inbox, and private-file ownership remain on the final human walkthrough.
+- Production runtime release `92d37f4ac0ec70d049d6a1f0ee5240a6d85e9418` was deployed by immutable ECR digest `sha256:d17a3d173b0240de416db798e0a3a918e062ebbd9a05bcde6bf37fbd843dda87`; Terraform changed only eight Lambda image references and reports zero drift. Empty-batch worker smokes and the workflow pump completed without function errors, and CloudFront invalidation `IEL72RR9UV3GUXXNE92T65C2CX` completed for the matching frontend build.
 
 ## Known environment notes
 
