@@ -122,11 +122,19 @@ Read `AGENTS.md`, `projectSpecs.md`, and this file before making a non-trivial c
 - [x] Implement and verify entitlements, Account Activity, and append-only audit.
 - [x] Generate OpenAPI/TypeScript contracts and deterministic synthetic seed/reset tooling.
 
-## Immediate next steps
+## Deployment Status
 
-1. Create the production Neon database and required SSM SecureString parameters, then supply reviewed domain, certificate, network, and budget variables.
-2. Bootstrap the Terraform-managed ECR repositories, push the exact SHA images, review the saved production plan, and apply through the protected GitHub environment.
-3. Run the documented post-deploy smoke checks and first production backup/restore exercise; record the release SHA and evidence in the operations log.
+- [x] Initialized GitHub repository and set up AWS billing.
+- [x] Provisioned Neon PostgreSQL database and updated SSM secrets.
+- [x] Configured Cloudflare domain (`zorneo.dev`) and requested ACM Certificates.
+- [x] Pushed runtime, backup, and browser-worker Docker images to ECR.
+- [x] Applied Terraform to deploy AWS backend (API Gateway, Cognito, SQS, Lambdas).
+- [x] Resolved new account Lambda concurrency limit errors and Docker manifest issues.
+- [x] Generated `.env.production` with Cognito and API Gateway outputs.
+- [x] Built Next.js static output locally (`npm run build`).
+- [ ] User is modifying frontend UI to satisfaction before final deployment to S3.
+- [ ] Sync UI build to S3 and invalidate CloudFront cache.
+- [ ] Final smoke check and testing.
 
 ## Verification log
 
