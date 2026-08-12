@@ -132,8 +132,8 @@ Read `AGENTS.md`, `projectSpecs.md`, and this file before making a non-trivial c
 - [x] Resolved new account Lambda concurrency limit errors and Docker manifest issues.
 - [x] Generated `.env.production` with Cognito and API Gateway outputs.
 - [x] Built Next.js static output locally (`npm run build`).
-- [ ] User is modifying frontend UI to satisfaction before final deployment to S3.
-- [ ] Sync UI build to S3 and invalidate CloudFront cache.
+- [x] User is modifying frontend UI to satisfaction before final deployment to S3.
+- [x] Sync UI build to S3 and invalidate CloudFront cache.
 - [ ] Final smoke check and testing.
 
 ## Verification log

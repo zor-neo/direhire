@@ -81,9 +81,12 @@ class CognitoOAuthClient:
             response.raise_for_status()
             id_token = response.json()["id_token"]
         except (httpx.HTTPError, KeyError, ValueError) as exc:
+            msg = "Sign-in could not be completed. Please try again."
+            if isinstance(exc, httpx.HTTPStatusError):
+                msg += f" Details: {exc.response.text}"
             raise AppError(
                 "AUTH_PROVIDER_UNAVAILABLE",
-                "Sign-in could not be completed. Please try again.",
+                msg,
                 503,
                 retryable=True,
             ) from exc
