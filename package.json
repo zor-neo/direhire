@@ -1,0 +1,16 @@
+{
+  "name": "direhire",
+  "private": true,
+  "packageManager": "pnpm@10.15.0",
+  "scripts": {
+    "build": "corepack pnpm --filter @direhire/web build",
+    "dev": "corepack pnpm --filter @direhire/web dev",
+    "lint": "corepack pnpm --filter @direhire/web lint",
+    "typecheck": "corepack pnpm --filter @direhire/web typecheck",
+    "generate:openapi": "python -m uv run python scripts/export_openapi.py",
+    "generate:types": "corepack pnpm exec openapi-typescript contracts/generated/openapi.json -o contracts/generated/api-types.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "7.13.0"
+  }
+}

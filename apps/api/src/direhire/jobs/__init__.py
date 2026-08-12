@@ -1,0 +1,1 @@
+"""Canonical public job corpus."""

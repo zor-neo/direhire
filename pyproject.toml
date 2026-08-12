@@ -1,0 +1,52 @@
+[project]
+name = "direhire"
+version = "0.1.0"
+description = "Production-minded job search automation platform"
+requires-python = ">=3.12"
+dependencies = [
+  "alembic==1.16.5",
+  "boto3==1.43.68",
+  "fastapi==0.141.1",
+  "starlette==1.6.0",
+  "httpx==0.28.1",
+  "mangum==0.19.0",
+  "pyjwt[crypto]==2.13.0",
+  "pydantic-settings==2.10.1",
+  "pypdf==6.15.0",
+  "python-docx==1.2.0",
+  "reportlab==5.0.0",
+  "psycopg[binary]==3.2.9",
+  "sqlalchemy==2.0.43",
+  "uvicorn==0.35.0",
+]
+
+[build-system]
+requires = ["setuptools==80.9.0"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["apps/api/src"]
+
+[dependency-groups]
+dev = [
+  "httpx==0.28.1",
+  "httpx2==2.10.0",
+  "pytest==8.4.1",
+  "pytest-cov==6.2.1",
+  "ruff==0.12.10",
+]
+browser = [
+  "playwright==1.55.0",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+pythonpath = ["apps/api/src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "SIM"]

@@ -1,0 +1,113 @@
+name: Deploy production
+
+on:
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Apply the reviewed Terraform plan and deploy the exact artifacts
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5
+      - uses: astral-sh/setup-uv@4959332f0f014c5280e7eac8b70c90cb574c9f9b # v6
+        with:
+          version: "0.8.15"
+          enable-cache: true
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version: "22"
+          cache: pnpm
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3
+        with:
+          terraform_version: "1.15.6"
+      - uses: aws-actions/configure-aws-credentials@e3dd6a429d7300a6a4c196c26e071d42e0343502 # v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-southeast-1
+      - run: uv sync --frozen
+      - run: corepack enable && pnpm install --frozen-lockfile
+      - run: uv run ruff format --check . && uv run ruff check . && uv run pytest
+      - run: pnpm lint && pnpm typecheck && pnpm build && pnpm audit --prod
+      - name: Build and push immutable images
+        shell: bash
+        run: |
+          set -euo pipefail
+          registry="${AWS_ACCOUNT_ID}.dkr.ecr.ap-southeast-1.amazonaws.com"
+          aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
+          for image in runtime browser-worker database-backup; do
+            case "$image" in
+              runtime) dockerfile=Dockerfile ;;
+              browser-worker) dockerfile=Dockerfile.browser ;;
+              database-backup) dockerfile=Dockerfile.backup ;;
+            esac
+            docker build --pull --file "$dockerfile" --tag "$registry/direhire/$image:${GITHUB_SHA}" .
+            docker push "$registry/direhire/$image:${GITHUB_SHA}"
+          done
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      - name: Resolve immutable image digests
+        shell: bash
+        run: |
+          set -euo pipefail
+          for image in runtime browser-worker database-backup; do
+            digest="$(aws ecr describe-images --repository-name "direhire/$image" --image-ids imageTag="${GITHUB_SHA}" --query 'imageDetails[0].imageDigest' --output text)"
+            case "$image" in
+              runtime) key=runtime ;;
+              browser-worker) key=browser ;;
+              database-backup) key=backup ;;
+            esac
+            echo "TF_VAR_${key}_image_uri=${AWS_ACCOUNT_ID}.dkr.ecr.ap-southeast-1.amazonaws.com/direhire/$image@$digest" >> "$GITHUB_ENV"
+          done
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+      - name: Terraform plan
+        working-directory: infrastructure/terraform
+        env:
+          TF_VAR_frontend_domain_name: ${{ vars.FRONTEND_DOMAIN_NAME }}
+          TF_VAR_api_domain_name: ${{ vars.API_DOMAIN_NAME }}
+          TF_VAR_cloudfront_certificate_arn: ${{ secrets.CLOUDFRONT_CERTIFICATE_ARN }}
+          TF_VAR_api_certificate_arn: ${{ secrets.API_CERTIFICATE_ARN }}
+          TF_VAR_cognito_domain_prefix: ${{ vars.COGNITO_DOMAIN_PREFIX }}
+          TF_VAR_private_subnet_ids: ${{ vars.PRIVATE_SUBNET_IDS_JSON }}
+          TF_VAR_browser_security_group_ids: ${{ vars.WORKER_SECURITY_GROUP_IDS_JSON }}
+          TF_VAR_budget_alert_emails: ${{ vars.BUDGET_ALERT_EMAILS_JSON }}
+        run: |
+          terraform init -backend-config="${{ secrets.TERRAFORM_BACKEND_CONFIG }}"
+          terraform plan -out=release.tfplan
+      - name: Run controlled migrations
+        if: inputs.apply
+        shell: bash
+        run: |
+          set -euo pipefail
+          database_url="$(aws ssm get-parameter --name /prod/database/neon/direct-url --with-decryption --query 'Parameter.Value' --output text)"
+          DIREHIRE_DATABASE_URL="$database_url" uv run alembic upgrade head
+          unset database_url
+      - name: Apply reviewed plan
+        if: inputs.apply
+        working-directory: infrastructure/terraform
+        run: terraform apply -auto-approve release.tfplan
+      - name: Publish static frontend
+        if: inputs.apply
+        shell: bash
+        run: |
+          set -euo pipefail
+          bucket="direhire-prod-${AWS_ACCOUNT_ID}-frontend"
+          aws s3 sync apps/web/out/ "s3://$bucket/" --delete --only-show-errors
+          aws cloudfront create-invalidation --distribution-id "${CLOUDFRONT_DISTRIBUTION_ID}" --paths '/*'
+        env:
+          AWS_ACCOUNT_ID: ${{ secrets.AWS_ACCOUNT_ID }}
+          CLOUDFRONT_DISTRIBUTION_ID: ${{ secrets.CLOUDFRONT_DISTRIBUTION_ID }}

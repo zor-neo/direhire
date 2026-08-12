@@ -1,0 +1,10 @@
+FROM public.ecr.aws/aws-cli/aws-cli:2.28.18 AS awscli
+FROM postgres:17.6-bookworm
+RUN apt-get update \
+    && apt-get install --yes --no-install-recommends bash ca-certificates gzip \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=awscli /usr/local/aws-cli /usr/local/aws-cli
+RUN ln -s /usr/local/aws-cli/v2/current/bin/aws /usr/local/bin/aws
+COPY scripts/backup_neon.sh /usr/local/bin/backup-neon
+RUN chmod 0555 /usr/local/bin/backup-neon
+ENTRYPOINT ["/usr/local/bin/backup-neon"]

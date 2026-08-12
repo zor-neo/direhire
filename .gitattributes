@@ -1,0 +1,9 @@
+# Normalize line endings across OS
+* text=auto
+
+# Keep shell scripts as LF
+*.sh text eol=lf
+
+# Keep lockfiles as-is
+pnpm-lock.yaml -diff
+uv.lock -diff
