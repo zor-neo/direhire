@@ -106,6 +106,17 @@ variable "cognito_domain_prefix" {
   type        = string
 }
 
+variable "cognito_ses_email_configuration" {
+  description = "Optional verified SES sender for Cognito. Keep null until the domain identity and DKIM records are verified."
+  type = object({
+    source_arn             = string
+    from_email_address     = string
+    reply_to_email_address = optional(string)
+  })
+  default  = null
+  nullable = true
+}
+
 variable "monthly_budget_usd" {
   description = "Monthly AWS cost budget for the P0 environment."
   type        = number

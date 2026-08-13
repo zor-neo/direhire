@@ -2,9 +2,33 @@ resource "aws_cognito_user_pool" "users" {
   name                     = "direhire-${var.environment}-users"
   username_attributes      = ["email"]
   auto_verified_attributes = ["email"]
-  mfa_configuration        = "ON"
+  # Normal users may opt into TOTP. Application authorization still requires
+  # verified MFA before ADMIN or SUPERADMIN access is usable.
+  mfa_configuration = "OPTIONAL"
+  user_pool_tier    = "ESSENTIALS"
 
   software_token_mfa_configuration { enabled = true }
+  email_configuration {
+    email_sending_account  = var.cognito_ses_email_configuration == null ? "COGNITO_DEFAULT" : "DEVELOPER"
+    source_arn             = var.cognito_ses_email_configuration == null ? null : var.cognito_ses_email_configuration.source_arn
+    from_email_address     = var.cognito_ses_email_configuration == null ? null : var.cognito_ses_email_configuration.from_email_address
+    reply_to_email_address = var.cognito_ses_email_configuration == null ? null : var.cognito_ses_email_configuration.reply_to_email_address
+  }
+  verification_message_template {
+    default_email_option = "CONFIRM_WITH_CODE"
+    email_subject        = "Verify your email for DireHire"
+    email_message        = <<-HTML
+      <div style="margin:0;padding:32px 16px;background:#f5f7f4;font-family:Arial,sans-serif;color:#1b2420">
+        <div style="max-width:520px;margin:0 auto;padding:32px;background:#ffffff;border:1px solid #dbe3dd;border-radius:16px">
+          <div style="display:inline-block;margin-bottom:24px;padding:8px 12px;border-radius:10px;background:#146c4e;color:#ffffff;font-weight:700">DireHire</div>
+          <h1 style="margin:0 0 12px;font-size:24px;line-height:1.25">Verify your email</h1>
+          <p style="margin:0 0 24px;color:#536159;line-height:1.6">Enter this code in the DireHire sign-up window to finish creating your account.</p>
+          <div style="margin:0 0 24px;padding:16px;border-radius:12px;background:#edf5f0;text-align:center;font-size:28px;font-weight:700;letter-spacing:8px;color:#0e5340">{####}</div>
+          <p style="margin:0;color:#718078;font-size:13px;line-height:1.5">If you did not request this account, you can safely ignore this email. DireHire will never ask you to send this code to another person.</p>
+        </div>
+      </div>
+    HTML
+  }
   password_policy {
     minimum_length                   = 12
     require_lowercase                = true
@@ -48,30 +72,19 @@ resource "aws_cognito_user_pool_client" "web" {
 }
 
 resource "aws_cognito_user_pool_domain" "hosted" {
-  domain       = var.cognito_domain_prefix
-  user_pool_id = aws_cognito_user_pool.users.id
+  domain                = var.cognito_domain_prefix
+  user_pool_id          = aws_cognito_user_pool.users.id
+  managed_login_version = 2
 }
 
-# Classic hosted UI keeps Cognito responsible for credentials while matching the
-# application palette. Cognito intentionally permits only its documented class
-# and property allowlist here.
-resource "aws_cognito_user_pool_ui_customization" "web" {
-  client_id    = aws_cognito_user_pool_client.web.id
-  user_pool_id = aws_cognito_user_pool_domain.hosted.user_pool_id
-  css          = <<-CSS
-    .background-customizable { background-color: #f5f7f4; }
-    .banner-customizable { padding: 24px 0 16px 0; background-color: #ffffff; }
-    .label-customizable { font-weight: 600; color: #1b2420; }
-    .inputField-customizable { width: 100%; height: 44px; color: #1b2420; background-color: #ffffff; border: 1px solid #cbd5cd; }
-    .inputField-customizable:focus { border-color: #146c4e; outline: 2px; }
-    .submitButton-customizable { font-size: 16px; font-weight: bold; margin: 16px 0 8px 0; width: 100%; height: 44px; color: #ffffff; background-color: #146c4e; }
-    .submitButton-customizable:hover { color: #ffffff; background-color: #0e5340; }
-    .textDescription-customizable { padding-top: 4px; padding-bottom: 12px; display: block; font-size: 14px; color: #64716a; }
-    .redirect-customizable { color: #146c4e; }
-    .errorMessage-customizable { margin: 8px 0 8px 0; padding: 12px; font-size: 14px; width: 100%; background: #faeaea; border: 1px solid #b03232; color: #8f2727; box-sizing: border-box; }
-    .passwordCheck-valid-customizable { color: #146c4e; }
-    .passwordCheck-notValid-customizable { color: #b03232; }
-  CSS
+# Managed login v2 provides the current responsive Cognito experience. Branding
+# remains Terraform-owned and can accept explicit assets/settings later.
+resource "aws_cognito_managed_login_branding" "web" {
+  client_id                   = aws_cognito_user_pool_client.web.id
+  user_pool_id                = aws_cognito_user_pool.users.id
+  use_cognito_provided_values = true
+
+  depends_on = [aws_cognito_user_pool_domain.hosted]
 }
 
 output "cognito_user_pool_id" { value = aws_cognito_user_pool.users.id }
