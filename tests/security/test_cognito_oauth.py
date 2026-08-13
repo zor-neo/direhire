@@ -1,3 +1,4 @@
+from typing import Literal
 from urllib.parse import parse_qs, urlparse
 
 from direhire.auth.oauth import AuthorizationFlow, CognitoIdentity, get_cognito_client
@@ -10,10 +11,12 @@ from sqlalchemy.orm import Session, sessionmaker
 
 
 class FakeCognitoClient:
-    def begin_authorization(self) -> AuthorizationFlow:
+    def begin_authorization(
+        self, *, screen: Literal["login", "signup"] = "login"
+    ) -> AuthorizationFlow:
         return AuthorizationFlow(
             authorization_url=(
-                "https://login.example.invalid/oauth2/authorize?"
+                f"https://login.example.invalid/{screen}?"
                 "response_type=code&code_challenge=challenge&code_challenge_method=S256"
             ),
             state="expected-state",
@@ -57,7 +60,7 @@ def test_login_starts_pkce_and_callback_issues_opaque_session(
                 params={"code": "authorization-code", "state": "expected-state"},
             )
             assert callback.status_code == 303
-            assert callback.headers["location"] == "http://localhost:3000"
+            assert callback.headers["location"] == "http://localhost:3000/dashboard"
             raw_session_token = client.cookies.get("direhire_session")
             assert raw_session_token
             assert client.cookies.get("direhire_oauth_state") is None
@@ -70,6 +73,26 @@ def test_login_starts_pkce_and_callback_issues_opaque_session(
             assert user.email == "casey@example.invalid"
             assert auth_session is not None
             assert auth_session.token_hash != raw_session_token
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_signup_starts_pkce_on_cognito_signup_page(
+    session_factory: sessionmaker[Session],
+) -> None:
+    def override_session():  # type: ignore[no-untyped-def]
+        with session_factory() as database:
+            yield database
+
+    app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_cognito_client] = FakeCognitoClient
+    try:
+        with TestClient(app, follow_redirects=False) as client:
+            response = client.get("/api/v1/auth/signup")
+            assert response.status_code == 307
+            assert urlparse(response.headers["location"]).path == "/signup"
+            assert client.cookies.get("direhire_oauth_state") == "expected-state"
+            assert client.cookies.get("direhire_pkce_verifier") == "expected-verifier"
     finally:
         app.dependency_overrides.clear()
 

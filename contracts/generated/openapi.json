@@ -2076,6 +2076,24 @@
         "title": "ScheduleUpdate",
         "type": "object"
       },
+      "SessionRead": {
+        "properties": {
+          "plan": {
+            "title": "Plan",
+            "type": "string"
+          },
+          "role": {
+            "title": "Role",
+            "type": "string"
+          }
+        },
+        "required": [
+          "role",
+          "plan"
+        ],
+        "title": "SessionRead",
+        "type": "object"
+      },
       "SimilarOpening": {
         "properties": {
           "company": {
@@ -4223,6 +4241,44 @@
           }
         },
         "summary": "Revoke Current Session",
+        "tags": [
+          "Authentication"
+        ]
+      },
+      "get": {
+        "operationId": "read_current_session_api_v1_auth_session_get",
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Read Current Session",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/signup": {
+      "get": {
+        "operationId": "begin_signup_api_v1_auth_signup_get",
+        "responses": {
+          "307": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Begin Signup",
         "tags": [
           "Authentication"
         ]

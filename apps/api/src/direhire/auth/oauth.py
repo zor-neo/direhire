@@ -2,7 +2,7 @@ import base64
 import hashlib
 import secrets
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, Literal
 from urllib.parse import urlencode
 
 import httpx
@@ -32,7 +32,9 @@ class CognitoOAuthClient:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
-    def begin_authorization(self) -> AuthorizationFlow:
+    def begin_authorization(
+        self, *, screen: Literal["login", "signup"] = "login"
+    ) -> AuthorizationFlow:
         domain, _, client_id, redirect_uri = self._required_config()
         state = secrets.token_urlsafe(32)
         nonce = secrets.token_urlsafe(32)
@@ -54,8 +56,9 @@ class CognitoOAuthClient:
                 "code_challenge_method": "S256",
             }
         )
+        authorization_path = "signup" if screen == "signup" else "oauth2/authorize"
         return AuthorizationFlow(
-            authorization_url=f"{domain.rstrip('/')}/oauth2/authorize?{query}",
+            authorization_url=f"{domain.rstrip('/')}/{authorization_path}?{query}",
             state=state,
             nonce=nonce,
             code_verifier=verifier,

@@ -427,11 +427,29 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        /** Read Current Session */
+        get: operations["read_current_session_api_v1_auth_session_get"];
         put?: never;
         post?: never;
         /** Revoke Current Session */
         delete: operations["revoke_current_session_api_v1_auth_session_delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/auth/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Begin Signup */
+        get: operations["begin_signup_api_v1_auth_signup_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -1809,6 +1827,13 @@ export interface components {
             /** Timezone */
             timezone: string;
         };
+        /** SessionRead */
+        SessionRead: {
+            /** Plan */
+            plan: string;
+            /** Role */
+            role: string;
+        };
         /** SimilarOpening */
         SimilarOpening: {
             /** Company */
@@ -3005,6 +3030,26 @@ export interface operations {
             };
         };
     };
+    read_current_session_api_v1_auth_session_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionRead"];
+                };
+            };
+        };
+    };
     revoke_current_session_api_v1_auth_session_delete: {
         parameters: {
             query?: never;
@@ -3020,6 +3065,26 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    begin_signup_api_v1_auth_signup_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            307: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
             };
         };
     };

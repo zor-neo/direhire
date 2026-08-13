@@ -30,7 +30,7 @@ class Settings(BaseSettings):
     cognito_user_pool_id: str | None = None
     cognito_client_id: str | None = None
     cognito_redirect_uri: str | None = None
-    frontend_post_login_url: str = "http://localhost:3000"
+    frontend_post_login_url: str = "http://localhost:3000/dashboard"
     discovery_queue_url: str | None = None
     queue_routes: dict[str, str] = Field(default_factory=dict)
     public_fetch_max_bytes: int = 2_000_000

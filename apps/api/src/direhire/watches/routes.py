@@ -22,7 +22,8 @@ User = Annotated[CurrentUser, Depends(current_user)]
 
 
 @router.get("/platforms")
-def list_platforms(location: str | None = None) -> list[dict]:
+def list_platforms(user: User, location: str | None = None) -> list[dict]:
+    del user
     platforms = available_platforms()
     if location:
         regions = resolve_location_regions(location)

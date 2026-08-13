@@ -9,6 +9,7 @@ from direhire.audit.service import ActivityService
 from direhire.auth.cookies import clear_session_cookies, set_session_cookies
 from direhire.auth.dependencies import CurrentUser, current_user
 from direhire.auth.oauth import CognitoOAuthClient, get_cognito_client
+from direhire.auth.schemas import SessionRead
 from direhire.auth.session_service import SessionService
 from direhire.auth.user_service import UserService
 from direhire.config import get_settings
@@ -23,10 +24,9 @@ CognitoClient = Annotated[CognitoOAuthClient, Depends(get_cognito_client)]
 OAUTH_COOKIE_MAX_AGE = 10 * 60
 
 
-@router.get("/login", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
-def begin_login(client: CognitoClient) -> RedirectResponse:
+def _begin_auth(client: CognitoOAuthClient, *, signup: bool) -> RedirectResponse:
     settings = get_settings()
-    flow = client.begin_authorization()
+    flow = client.begin_authorization(screen="signup" if signup else "login")
     response = RedirectResponse(flow.authorization_url)
     secure = settings.environment == "production"
     for name, value in (
@@ -44,6 +44,16 @@ def begin_login(client: CognitoClient) -> RedirectResponse:
             path="/api/v1/auth",
         )
     return response
+
+
+@router.get("/login", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+def begin_login(client: CognitoClient) -> RedirectResponse:
+    return _begin_auth(client, signup=False)
+
+
+@router.get("/signup", status_code=status.HTTP_307_TEMPORARY_REDIRECT)
+def begin_signup(client: CognitoClient) -> RedirectResponse:
+    return _begin_auth(client, signup=True)
 
 
 @router.get("/callback", status_code=status.HTTP_303_SEE_OTHER)
@@ -84,6 +94,12 @@ def csrf_token(request: Request, response: Response, user: User) -> dict[str, st
         raise AppError("CSRF_TOKEN_MISSING", "The security token is unavailable.", 401)
     response.headers["Cache-Control"] = "no-store"
     return {"csrf_token": token}
+
+
+@router.get("/session", response_model=SessionRead)
+def read_current_session(response: Response, user: User) -> SessionRead:
+    response.headers["Cache-Control"] = "no-store"
+    return SessionRead(role=user.role, plan=user.plan)
 
 
 @router.delete("/session", status_code=status.HTTP_204_NO_CONTENT)
