@@ -23,7 +23,7 @@ locals {
     DIREHIRE_ENVIRONMENT                  = "production"
     DIREHIRE_DATABASE_URL_PARAMETER       = var.database_url_parameter_name
     DIREHIRE_CORS_ORIGINS                 = jsonencode(["https://${var.frontend_domain_name}"])
-    DIREHIRE_FRONTEND_POST_LOGIN_URL      = "https://${var.frontend_domain_name}"
+    DIREHIRE_FRONTEND_POST_LOGIN_URL      = "https://${var.frontend_domain_name}/dashboard/"
     DIREHIRE_COGNITO_DOMAIN               = "https://${aws_cognito_user_pool_domain.hosted.domain}.auth.${var.aws_region}.amazoncognito.com"
     DIREHIRE_COGNITO_USER_POOL_ID         = aws_cognito_user_pool.users.id
     DIREHIRE_COGNITO_CLIENT_ID            = aws_cognito_user_pool_client.web.id

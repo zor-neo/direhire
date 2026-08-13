@@ -4,7 +4,7 @@ DireHire is a production-oriented, low-cost job-search platform. Its P0 workflow
 
 ## What is implemented
 
-- Next.js App Router/TypeScript static application with accessible routes for Watches, Inbox, Analyze a Job, applications, optional career tools, schedules/notifications, Privacy & Data, and privacy-safe Superadmin operations.
+- Next.js App Router/TypeScript static application with a public informational landing page, session-gated product shell, and accessible routes for Watches, Inbox, Analyze a Job, applications, optional career tools, schedules/notifications, Privacy & Data, and privacy-safe role-gated operations.
 - FastAPI `/api/v1` modular monolith with generated OpenAPI/TypeScript contracts, Cognito Authorization Code + PKCE, opaque revocable sessions, CSRF, privileged MFA, tenant ownership, entitlements, and append-only audit.
 - One SQLAlchemy/Alembic PostgreSQL data model with transactional outbox, versioned events, partial-success discovery, conservative deduplication, coalesced public fetches, SQS partial-batch workers, stuck-work visibility, and audited kill switches.
 - Six documented public launch adapters (Greenhouse, Lever, Ashby, Recruitee, Personio, Pinpoint), a schema.org generic adapter, and fixture-only normal CI.
