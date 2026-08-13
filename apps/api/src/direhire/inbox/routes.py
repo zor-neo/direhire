@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -13,6 +13,11 @@ router = APIRouter(prefix="/inbox", tags=["Job Inbox"])
 DbSession = Annotated[Session, Depends(get_session)]
 User = Annotated[CurrentUser, Depends(current_user)]
 InboxStatus = Literal["NEW", "VIEWED", "SAVED", "INTERESTED", "IGNORED", "ARCHIVED"]
+
+
+class MatchedWatchRead(BaseModel):
+    id: str
+    name: str
 
 
 class InboxItemRead(BaseModel):
@@ -27,6 +32,7 @@ class InboxItemRead(BaseModel):
     created_at: datetime
     analysis_status: str
     analysis: dict[str, object] | None
+    matched_watches: list[MatchedWatchRead] = []
 
 
 class InboxStatusUpdate(BaseModel):
@@ -34,8 +40,12 @@ class InboxStatusUpdate(BaseModel):
 
 
 @router.get("", response_model=list[InboxItemRead])
-def list_inbox(user: User, session: DbSession) -> object:
-    return InboxService(session).list(str(user.id))
+def list_inbox(
+    user: User,
+    session: DbSession,
+    watch_id: Annotated[str | None, Query(alias="watch_id")] = None,
+) -> object:
+    return InboxService(session).list(str(user.id), watch_id=watch_id)
 
 
 @router.patch("/{user_job_id}/status", response_model=InboxItemRead)

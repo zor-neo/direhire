@@ -1192,6 +1192,14 @@
             "title": "Location",
             "type": "string"
           },
+          "matched_watches": {
+            "default": [],
+            "items": {
+              "$ref": "#/components/schemas/MatchedWatchRead"
+            },
+            "title": "Matched Watches",
+            "type": "array"
+          },
           "source_url": {
             "anyOf": [
               {
@@ -1435,6 +1443,24 @@
           "updated_at"
         ],
         "title": "InterviewRead",
+        "type": "object"
+      },
+      "MatchedWatchRead": {
+        "properties": {
+          "id": {
+            "title": "Id",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "MatchedWatchRead",
         "type": "object"
       },
       "MfaSetupRead": {
@@ -4764,6 +4790,24 @@
     "/api/v1/inbox": {
       "get": {
         "operationId": "list_inbox_api_v1_inbox_get",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "watch_id",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Watch Id"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "content": {
@@ -4778,6 +4822,16 @@
               }
             },
             "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
           }
         },
         "summary": "List Inbox",

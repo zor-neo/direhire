@@ -1565,6 +1565,11 @@ export interface components {
             job_lifecycle: string;
             /** Location */
             location: string;
+            /**
+             * Matched Watches
+             * @default []
+             */
+            matched_watches: components["schemas"]["MatchedWatchRead"][];
             /** Source Url */
             source_url: string | null;
             /**
@@ -1632,6 +1637,13 @@ export interface components {
             updated_at: string;
             /** Went Well */
             went_well?: string | null;
+        };
+        /** MatchedWatchRead */
+        MatchedWatchRead: {
+            /** Id */
+            id: string;
+            /** Name */
+            name: string;
         };
         /** MfaSetupRead */
         MfaSetupRead: {
@@ -3471,7 +3483,9 @@ export interface operations {
     };
     list_inbox_api_v1_inbox_get: {
         parameters: {
-            query?: never;
+            query?: {
+                watch_id?: string | null;
+            };
             header?: never;
             path?: never;
             cookie?: never;
@@ -3485,6 +3499,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InboxItemRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
