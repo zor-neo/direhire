@@ -1437,6 +1437,43 @@
         "title": "InterviewRead",
         "type": "object"
       },
+      "MfaSetupRead": {
+        "properties": {
+          "account_name": {
+            "title": "Account Name",
+            "type": "string"
+          },
+          "issuer": {
+            "default": "DireHire",
+            "title": "Issuer",
+            "type": "string"
+          },
+          "secret_code": {
+            "title": "Secret Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "secret_code",
+          "account_name"
+        ],
+        "title": "MfaSetupRead",
+        "type": "object"
+      },
+      "MfaVerifyRequest": {
+        "properties": {
+          "code": {
+            "pattern": "^\\d{6}$",
+            "title": "Code",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "title": "MfaVerifyRequest",
+        "type": "object"
+      },
       "NoteCreate": {
         "properties": {
           "body": {
@@ -4160,6 +4197,22 @@
               ],
               "title": "Direhire Pkce Verifier"
             }
+          },
+          {
+            "in": "cookie",
+            "name": "direhire_auth_purpose",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Direhire Auth Purpose"
+            }
           }
         ],
         "responses": {
@@ -4227,6 +4280,126 @@
           }
         },
         "summary": "Begin Login",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/setup": {
+      "get": {
+        "operationId": "start_mfa_setup_api_v1_auth_mfa_setup_get",
+        "responses": {
+          "307": {
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            },
+            "description": "Successful Response"
+          }
+        },
+        "summary": "Start Mfa Setup",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/setup-details": {
+      "get": {
+        "operationId": "read_mfa_setup_api_v1_auth_mfa_setup_details_get",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "direhire_mfa_secret",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Direhire Mfa Secret"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MfaSetupRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Read Mfa Setup",
+        "tags": [
+          "Authentication"
+        ]
+      }
+    },
+    "/api/v1/auth/mfa/verify": {
+      "post": {
+        "operationId": "verify_mfa_setup_api_v1_auth_mfa_verify_post",
+        "parameters": [
+          {
+            "in": "cookie",
+            "name": "direhire_mfa_access",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Direhire Mfa Access"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MfaVerifyRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Verify Mfa Setup",
         "tags": [
           "Authentication"
         ]
