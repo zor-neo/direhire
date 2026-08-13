@@ -1,8 +1,8 @@
 import base64
 import hashlib
 import secrets
-from dataclasses import dataclass
-from typing import Annotated, Literal
+from dataclasses import dataclass, field
+from typing import Annotated, Literal, Protocol
 from urllib.parse import urlencode
 
 import httpx
@@ -26,11 +26,28 @@ class CognitoIdentity:
     subject: str
     email: str
     email_verified: bool
+    mfa_enabled: bool = False
+    access_token: str | None = field(default=None, repr=False)
+
+
+class CognitoUserClient(Protocol):
+    def get_user(self, *, AccessToken: str) -> dict[str, object]: ...
+
+    def associate_software_token(self, *, AccessToken: str) -> dict[str, object]: ...
+
+    def verify_software_token(
+        self, *, AccessToken: str, UserCode: str, FriendlyDeviceName: str
+    ) -> dict[str, object]: ...
+
+    def set_user_mfa_preference(
+        self, *, AccessToken: str, SoftwareTokenMfaSettings: dict[str, bool]
+    ) -> dict[str, object]: ...
 
 
 class CognitoOAuthClient:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, user_client: CognitoUserClient | None = None) -> None:
         self.settings = settings
+        self._user_client = user_client
 
     def begin_authorization(
         self, *, screen: Literal["login", "signup"] = "login"
@@ -49,7 +66,7 @@ class CognitoOAuthClient:
                 "response_type": "code",
                 "client_id": client_id,
                 "redirect_uri": redirect_uri,
-                "scope": "openid email",
+                "scope": "openid email aws.cognito.signin.user.admin",
                 "state": state,
                 "nonce": nonce,
                 "code_challenge": challenge,
@@ -82,14 +99,13 @@ class CognitoOAuthClient:
                 timeout=10.0,
             )
             response.raise_for_status()
-            id_token = response.json()["id_token"]
+            token_body = response.json()
+            id_token = token_body["id_token"]
+            access_token = token_body["access_token"]
         except (httpx.HTTPError, KeyError, ValueError) as exc:
-            msg = "Sign-in could not be completed. Please try again."
-            if isinstance(exc, httpx.HTTPStatusError):
-                msg += f" Details: {exc.response.text}"
             raise AppError(
                 "AUTH_PROVIDER_UNAVAILABLE",
-                msg,
+                "Sign-in could not be completed. Please try again.",
                 503,
                 retryable=True,
             ) from exc
@@ -116,7 +132,56 @@ class CognitoOAuthClient:
         email = claims.get("email")
         if not isinstance(email, str) or claims.get("email_verified") is not True:
             raise AppError("EMAIL_NOT_VERIFIED", "Verify your email before signing in.", 403)
-        return CognitoIdentity(subject=str(claims["sub"]), email=email, email_verified=True)
+        try:
+            cognito_user = self._client().get_user(AccessToken=access_token)
+            mfa_settings = cognito_user.get("UserMFASettingList", [])
+            mfa_enabled = "SOFTWARE_TOKEN_MFA" in mfa_settings
+        except Exception as exc:
+            raise AppError(
+                "AUTH_PROVIDER_UNAVAILABLE",
+                "Sign-in could not be completed. Please try again.",
+                503,
+                retryable=True,
+            ) from exc
+        return CognitoIdentity(
+            subject=str(claims["sub"]),
+            email=email,
+            email_verified=True,
+            mfa_enabled=mfa_enabled,
+            access_token=access_token,
+        )
+
+    def begin_mfa_setup(self, access_token: str) -> str:
+        try:
+            response = self._client().associate_software_token(AccessToken=access_token)
+            return str(response["SecretCode"])
+        except Exception as exc:
+            raise AppError(
+                "MFA_SETUP_FAILED", "MFA setup could not be started.", 503, True
+            ) from exc
+
+    def complete_mfa_setup(self, access_token: str, code: str) -> None:
+        try:
+            verified = self._client().verify_software_token(
+                AccessToken=access_token,
+                UserCode=code,
+                FriendlyDeviceName="DireHire",
+            )
+            if verified.get("Status") != "SUCCESS":
+                raise ValueError("TOTP verification did not succeed")
+            self._client().set_user_mfa_preference(
+                AccessToken=access_token,
+                SoftwareTokenMfaSettings={"Enabled": True, "PreferredMfa": True},
+            )
+        except Exception as exc:
+            raise AppError("MFA_CODE_INVALID", "The authenticator code is invalid.", 400) from exc
+
+    def _client(self) -> CognitoUserClient:
+        if self._user_client is None:
+            import boto3
+
+            self._user_client = boto3.client("cognito-idp")
+        return self._user_client
 
     def _required_config(self) -> tuple[str, str, str, str]:
         values = (

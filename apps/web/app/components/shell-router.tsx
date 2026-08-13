@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 
-import { ApiError, apiRequest, displayError } from "../lib/api";
+import { ApiError, apiMfaSetupUrl, apiRequest, displayError } from "../lib/api";
 import { AppShell, type ProductSession } from "./app-shell";
 
 const publicPaths = new Set(["/"]);
@@ -13,6 +13,7 @@ export function ShellRouter({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [session, setSession] = useState<ProductSession | null>(null);
   const [error, setError] = useState("");
+  const [mfaRequired, setMfaRequired] = useState(false);
   const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
@@ -34,6 +35,9 @@ export function ShellRouter({ children }: { children: ReactNode }) {
         if (reason instanceof ApiError && reason.code === "AUTHENTICATION_REQUIRED") {
           window.location.replace("/");
           return;
+        }
+        if (reason instanceof ApiError && reason.code === "MFA_REQUIRED") {
+          setMfaRequired(true);
         }
         setError(displayError(reason));
       });
@@ -64,6 +68,11 @@ export function ShellRouter({ children }: { children: ReactNode }) {
           >
             Try again
           </button>
+          {mfaRequired && (
+            <a className="button" href={apiMfaSetupUrl()}>
+              Set up authenticator
+            </a>
+          )}
           <Link className="button" href="/">Return home</Link>
         </div>
       </main>

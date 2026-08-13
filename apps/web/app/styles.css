@@ -385,6 +385,19 @@ main.landing-main {
 .landing-actions { display: flex; flex-wrap: wrap; gap: 0.7rem; margin-top: 1.7rem; }
 .landing-note { margin: 0.75rem 0 0; color: var(--faint); font-size: 0.8rem; }
 
+.setup-secret {
+  display: block;
+  overflow-wrap: anywhere;
+  margin: 1rem 0;
+  padding: 0.85rem 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--info);
+  background: var(--info-soft);
+  font-size: 1rem;
+  letter-spacing: 0.08em;
+}
+
 .landing-preview {
   display: grid;
   gap: 0.75rem;

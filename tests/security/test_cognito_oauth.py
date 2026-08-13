@@ -34,7 +34,16 @@ class FakeCognitoClient:
             subject="cognito-subject-123",
             email="casey@example.invalid",
             email_verified=True,
+            access_token="access-token",
         )
+
+    def begin_mfa_setup(self, access_token: str) -> str:
+        assert access_token == "access-token"
+        return "ABCDEFGHIJKLMNOP"
+
+    def complete_mfa_setup(self, access_token: str, code: str) -> None:
+        assert access_token == "access-token"
+        assert code == "123456"
 
 
 def test_login_starts_pkce_and_callback_issues_opaque_session(
@@ -113,5 +122,53 @@ def test_callback_rejects_state_mismatch(session_factory: sessionmaker[Session])
             )
             assert response.status_code == 401
             assert response.json()["error"]["code"] == "AUTH_STATE_INVALID"
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_user_can_enable_optional_totp_and_session_is_revoked(
+    session_factory: sessionmaker[Session],
+) -> None:
+    def override_session():  # type: ignore[no-untyped-def]
+        with session_factory() as database:
+            yield database
+
+    app.dependency_overrides[get_session] = override_session
+    app.dependency_overrides[get_cognito_client] = FakeCognitoClient
+    try:
+        with TestClient(app, follow_redirects=False) as client:
+            client.get("/api/v1/auth/login")
+            client.get(
+                "/api/v1/auth/callback",
+                params={"code": "authorization-code", "state": "expected-state"},
+            )
+            csrf = client.cookies.get("direhire_csrf")
+            assert csrf
+
+            setup = client.get("/api/v1/auth/mfa/setup")
+            assert setup.status_code == 307
+            callback = client.get(
+                "/api/v1/auth/callback",
+                params={"code": "authorization-code", "state": "expected-state"},
+            )
+            assert callback.status_code == 303
+            assert callback.headers["location"].endswith("/settings/?mfa=setup")
+            details = client.get("/api/v1/auth/mfa/setup-details")
+            assert details.status_code == 200
+            assert details.json()["secret_code"] == "ABCDEFGHIJKLMNOP"
+
+            verified = client.post(
+                "/api/v1/auth/mfa/verify",
+                json={"code": "123456"},
+                headers={"X-CSRF-Token": csrf},
+            )
+            assert verified.status_code == 204
+            assert client.get("/api/v1/auth/session").status_code == 401
+
+        with session_factory() as database:
+            user = database.scalar(select(User))
+            assert user is not None
+            assert user.mfa_enabled is True
+            assert user.security_version == 2
     finally:
         app.dependency_overrides.clear()

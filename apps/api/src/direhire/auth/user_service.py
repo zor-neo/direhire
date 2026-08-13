@@ -13,9 +13,14 @@ class UserService:
         statement = select(User).where(User.cognito_subject == identity.subject)
         user = self.session.scalar(statement)
         if user is None:
-            user = User(cognito_subject=identity.subject, email=identity.email)
+            user = User(
+                cognito_subject=identity.subject,
+                email=identity.email,
+                mfa_enabled=identity.mfa_enabled,
+            )
             self.session.add(user)
-        elif user.email != identity.email:
+        else:
             user.email = identity.email
+            user.mfa_enabled = identity.mfa_enabled
         self.session.flush()
         return user

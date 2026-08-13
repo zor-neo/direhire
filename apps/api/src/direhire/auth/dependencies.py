@@ -22,7 +22,9 @@ class CurrentUser:
 DbSession = Annotated[Session, Depends(get_session)]
 
 
-def current_user(request: Request, session: DbSession) -> CurrentUser:
+def _resolve_current_user(
+    request: Request, session: Session, *, enforce_privileged_mfa: bool
+) -> CurrentUser:
     settings = get_settings()
     if (
         settings.allow_insecure_dev_auth
@@ -47,6 +49,7 @@ def current_user(request: Request, session: DbSession) -> CurrentUser:
         token,
         csrf_token=csrf_header,
         require_csrf=require_csrf,
+        enforce_privileged_mfa=enforce_privileged_mfa,
     )
     return CurrentUser(
         id=identity.user_id,
@@ -54,3 +57,11 @@ def current_user(request: Request, session: DbSession) -> CurrentUser:
         plan=identity.plan,
         session_id=identity.session_id,
     )
+
+
+def current_user(request: Request, session: DbSession) -> CurrentUser:
+    return _resolve_current_user(request, session, enforce_privileged_mfa=True)
+
+
+def mfa_setup_user(request: Request, session: DbSession) -> CurrentUser:
+    return _resolve_current_user(request, session, enforce_privileged_mfa=False)

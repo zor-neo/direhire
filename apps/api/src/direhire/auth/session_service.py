@@ -60,6 +60,7 @@ class SessionService:
         *,
         csrf_token: str | None = None,
         require_csrf: bool = False,
+        enforce_privileged_mfa: bool = True,
         now: datetime | None = None,
     ) -> SessionIdentity:
         current_time = now or datetime.now(UTC)
@@ -80,7 +81,7 @@ class SessionService:
             or auth_session.security_version != user.security_version
         ):
             raise self._authentication_required()
-        if user.role in {"ADMIN", "SUPERADMIN"} and not user.mfa_enabled:
+        if enforce_privileged_mfa and user.role in {"ADMIN", "SUPERADMIN"} and not user.mfa_enabled:
             raise AppError("MFA_REQUIRED", "Multi-factor authentication is required.", 403)
         if require_csrf and (
             not csrf_token
