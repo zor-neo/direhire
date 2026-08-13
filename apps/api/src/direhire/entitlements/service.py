@@ -5,7 +5,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from direhire.errors import AppError
-from direhire.models import PlanEntitlement, UserEntitlementOverride
+from direhire.models import PlanEntitlement, User, UserEntitlementOverride
 
 ACTIVE_WATCH_LIMIT = "active_watch_count"
 MANUAL_RUN_DAILY_LIMIT = "manual_runs_per_day"
@@ -56,6 +56,12 @@ class EntitlementService:
         entitlement_key: str,
         now: datetime | None = None,
     ) -> EntitlementValue:
+        user = self.session.get(User, user_id)
+        if user is not None and user.role == "SUPERADMIN":
+            if entitlement_key == MANUAL_RUN_COOLDOWN_SECONDS:
+                return EntitlementValue(enabled=False, limit_value=0, source="superadmin_bypass")
+            return EntitlementValue(enabled=True, limit_value=999_999, source="superadmin_bypass")
+
         current_time = now or datetime.now(UTC)
         override = self.session.scalar(
             select(UserEntitlementOverride).where(
