@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 
-import { apiLoginUrl } from "../lib/api";
+import { apiRequest } from "../lib/api";
 import { Icon, type IconName } from "./icons";
 
 interface NavItem {
@@ -14,7 +14,7 @@ interface NavItem {
 }
 
 const discoverGroup: NavItem[] = [
-  { href: "/", label: "Dashboard", icon: "dashboard" },
+  { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/watches", label: "Job Watches", icon: "watch" },
   { href: "/inbox", label: "Job Inbox", icon: "inbox" },
   { href: "/analyze", label: "Analyze a Job", icon: "analyze" },
@@ -28,6 +28,11 @@ const manageGroup: NavItem[] = [
 ];
 
 const allItems = [...discoverGroup, ...manageGroup];
+
+export interface ProductSession {
+  role: string;
+  plan: string;
+}
 
 function NavLinks({ pathname }: { pathname: string }) {
   return (
@@ -54,12 +59,19 @@ function NavLinks({ pathname }: { pathname: string }) {
   );
 }
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({ children, session }: { children: ReactNode; session: ProductSession }) {
   const pathname = usePathname();
+  const canOperate = session.role === "ADMIN" || session.role === "SUPERADMIN";
+
+  async function signOut() {
+    await apiRequest<void>("/auth/session", { method: "DELETE" });
+    window.location.replace("/");
+  }
+
   return (
     <div className="app-layout">
       <aside className="sidebar">
-        <Link className="brand" href="/" aria-label="DireHire dashboard">
+        <Link className="brand" href="/dashboard" aria-label="DireHire dashboard">
           <span className="brand-mark" aria-hidden="true">D</span> DireHire
         </Link>
         <nav aria-label="Primary navigation">
@@ -67,13 +79,15 @@ export function AppShell({ children }: { children: ReactNode }) {
         </nav>
         <div className="sidebar-footer">
           <Link href="/privacy"><Icon name="privacy" />Privacy &amp; data</Link>
-          <Link href="/admin"><Icon name="operations" />Operations</Link>
-          <a href={apiLoginUrl()}><Icon name="signin" />Sign in</a>
+          {canOperate && <Link href="/admin"><Icon name="operations" />Operations</Link>}
+          <button className="sidebar-action" type="button" onClick={() => void signOut()}>
+            <Icon name="signin" />Sign out
+          </button>
         </div>
       </aside>
       <div className="content-shell">
         <header className="mobile-header">
-          <Link className="brand" href="/">
+          <Link className="brand" href="/dashboard">
             <span className="brand-mark" aria-hidden="true">D</span> DireHire
           </Link>
           <details className="mobile-menu">
@@ -83,7 +97,8 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <Link href={href} key={href}><Icon name={icon} size={16} />{label}</Link>
               ))}
               <Link href="/privacy"><Icon name="privacy" size={16} />Privacy &amp; data</Link>
-              <a href={apiLoginUrl()}><Icon name="signin" size={16} />Sign in</a>
+              {canOperate && <Link href="/admin"><Icon name="operations" size={16} />Operations</Link>}
+              <button type="button" onClick={() => void signOut()}><Icon name="signin" size={16} />Sign out</button>
             </nav>
           </details>
         </header>

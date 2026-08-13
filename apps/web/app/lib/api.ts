@@ -75,6 +75,10 @@ export function apiLoginUrl(): string {
   return `${apiBase}/auth/login`;
 }
 
+export function apiSignupUrl(): string {
+  return `${apiBase}/auth/signup`;
+}
+
 export function commaList(value: FormDataEntryValue | null): string[] {
   return String(value ?? "")
     .split(",")

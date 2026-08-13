@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import "./styles.css";
-import { AppShell } from "./components/app-shell";
+import { ShellRouter } from "./components/shell-router";
 
 export const metadata: Metadata = {
   title: "DireHire",
@@ -12,7 +12,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="en">
       <body>
         <a className="skip-link" href="#main">Skip to main content</a>
-        <AppShell>{children}</AppShell>
+        <ShellRouter>{children}</ShellRouter>
       </body>
     </html>
   );
