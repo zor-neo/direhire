@@ -29,6 +29,7 @@ from direhire.sources.adapters.pinpoint import PinpointAdapter
 from direhire.sources.adapters.recruitee import RecruiteeAdapter
 from direhire.sources.adapters.remotive import RemotiveAdapter
 from direhire.sources.adapters.synthetic_board import SyntheticBoardAdapter
+from direhire.sources.adapters.usajobs import USAJobsAdapter
 from direhire.sources.adapters.workable import WorkableAdapter
 from direhire.sources.coalescing import SharedFetchPending, SourceFetchCoalescer
 from direhire.sources.contracts import SearchQuery, SearchRequest, SourceAdapter
@@ -43,6 +44,7 @@ class DiscoveryProcessor:
     def __init__(self, session: Session, content_provider: ContentProvider) -> None:
         self.session = session
         self.content_provider = content_provider
+        settings = get_settings()
         self.adapters: dict[str, SourceAdapter] = {
             SyntheticBoardAdapter.key: SyntheticBoardAdapter(),
             GenericPublicAdapter.key: GenericPublicAdapter(),
@@ -55,6 +57,7 @@ class DiscoveryProcessor:
             JobThaiAdapter.key: JobThaiAdapter(),
             RemotiveAdapter.key: RemotiveAdapter(),
             WorkableAdapter.key: WorkableAdapter(),
+            USAJobsAdapter.key: USAJobsAdapter(settings),
         }
 
     def process(self, run_id: str) -> JobWatchRun:

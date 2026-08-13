@@ -1,0 +1,55 @@
+{
+  "LanguageCode": "EN",
+  "SearchParameters": {},
+  "SearchResult": {
+    "SearchResultCount": 1,
+    "SearchResultCountAll": 1,
+    "SearchResultItems": [
+      {
+        "MatchedObjectId": "81000100",
+        "MatchedObjectDescriptor": {
+          "PositionID": "SYNTHETIC-2210-01",
+          "PositionTitle": "IT SPECIALIST (APPLICATION SOFTWARE)",
+          "PositionURI": "https://www.usajobs.gov/job/81000100",
+          "ApplyURI": ["https://www.usajobs.gov/job/81000100"],
+          "PositionLocationDisplay": "Washington, District of Columbia",
+          "PositionLocation": [
+            {
+              "LocationName": "Washington, District of Columbia",
+              "CountryCode": "United States"
+            }
+          ],
+          "OrganizationName": "Synthetic Federal Digital Service",
+          "DepartmentName": "Synthetic Department",
+          "QualificationSummary": "Applicants need professional Python and PostgreSQL experience.",
+          "PublicationStartDate": "2026-08-10T00:00:00Z",
+          "PositionFormattedDescription": [
+            {
+              "Content": "Build accessible public services.",
+              "Label": "Dynamic Teaser"
+            }
+          ],
+          "UserArea": {
+            "Details": {
+              "JobSummary": "Join a public-sector software delivery team.",
+              "MajorDuties": "Design and operate reliable FastAPI services.",
+              "Requirements": "US citizenship and background investigation required.",
+              "Education": "See the announcement for substitution rules.",
+              "Evaluations": "Experience will be evaluated against the announcement.",
+              "OtherInformation": "This is a synthetic test announcement.",
+              "WhoMayApply": {
+                "Name": "United States Citizens",
+                "Code": "15514"
+              }
+            }
+          }
+        },
+        "RelevanceRank": 0
+      }
+    ],
+    "UserArea": {
+      "NumberOfPages": "1",
+      "IsRadialSearch": false
+    }
+  }
+}

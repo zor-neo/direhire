@@ -1,6 +1,7 @@
 import ipaddress
 import json
 import socket
+from typing import Protocol
 from urllib.parse import urlsplit
 
 import httpx
@@ -12,9 +13,25 @@ from direhire.sources.contracts import SearchRequest
 from direhire.sources.validation import normalize_public_url
 
 
+class SecretProvider(Protocol):
+    def get(self, parameter_name: str) -> str: ...
+
+
+class SsmSecretProvider:
+    def __init__(self) -> None:
+        import boto3
+
+        self.client = boto3.client("ssm")
+
+    def get(self, parameter_name: str) -> str:
+        response = self.client.get_parameter(Name=parameter_name, WithDecryption=True)
+        return str(response["Parameter"]["Value"])
+
+
 class SafePublicFetcher:
-    def __init__(self, settings: Settings) -> None:
+    def __init__(self, settings: Settings, secret_provider: SecretProvider | None = None) -> None:
         self.settings = settings
+        self.secret_provider = secret_provider
 
     def __call__(self, source: WatchSource, request: SearchRequest | None = None) -> str:
         if request is not None:
@@ -29,9 +46,10 @@ class SafePublicFetcher:
     def fetch_request(self, request: SearchRequest) -> str:
         if request.method not in {"GET", "POST"}:
             raise AppError("SOURCE_UNSUPPORTED", "The source request method is unsupported.", 422)
-        if any(
-            key.casefold() not in {"accept", "content-type", "client-name"}
-            for key in request.headers
+        allowed_headers = {"accept", "content-type", "client-name", "user-agent"}
+        allowed_secret_headers = {"authorization-key", "user-agent"}
+        if any(key.casefold() not in allowed_headers for key in request.headers) or any(
+            key.casefold() not in allowed_secret_headers for key in request.secret_headers
         ):
             raise AppError("SOURCE_UNSUPPORTED", "The source request headers are unsupported.", 422)
         if request.method == "GET" and request.json_body is not None:
@@ -42,6 +60,14 @@ class SafePublicFetcher:
             json.dumps(request.json_body).encode("utf-8") if request.json_body is not None else None
         )
         headers = {"User-Agent": "DireHire/0.1", **request.headers}
+        if request.secret_headers:
+            provider = self.secret_provider or SsmSecretProvider()
+            headers.update(
+                {
+                    header: provider.get(parameter_name)
+                    for header, parameter_name in request.secret_headers.items()
+                }
+            )
         try:
             with (
                 httpx.Client(follow_redirects=False, timeout=15.0, trust_env=False) as client,

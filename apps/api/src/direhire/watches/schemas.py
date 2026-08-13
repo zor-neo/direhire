@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from direhire.sources.detection import resolve_custom_source
-from direhire.sources.platforms import SEARCH_PLATFORMS
+from direhire.sources.platforms import SEARCH_PLATFORMS, platform_is_available
 
 
 class WatchStatus(StrEnum):
@@ -47,7 +47,7 @@ class WatchSourceInput(BaseModel):
             platform = SEARCH_PLATFORMS.get(self.platform_key)
             if platform is None:
                 raise ValueError("Unsupported search platform")
-            if platform.availability != "AVAILABLE":
+            if not platform_is_available(platform):
                 raise ValueError("Search platform is not currently available")
             self.adapter_key = platform.adapter_key
         return self

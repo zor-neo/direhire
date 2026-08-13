@@ -1,3 +1,4 @@
+from direhire.config import Settings
 from direhire.sources.platforms import (
     SEARCH_PLATFORMS,
     available_platforms,
@@ -12,6 +13,7 @@ def test_search_platform_registry_keys() -> None:
     assert "jobsdb" in SEARCH_PLATFORMS
     assert "jobthai" in SEARCH_PLATFORMS
     assert "remotive" in SEARCH_PLATFORMS
+    assert "usajobs" in SEARCH_PLATFORMS
     assert SEARCH_PLATFORMS["jobstreet"].adapter_key == "seek_search"
     assert SEARCH_PLATFORMS["jobstreet"].availability == "PAUSED"
     assert SEARCH_PLATFORMS["jobstreet"].search_capable is True
@@ -21,6 +23,11 @@ def test_resolve_location_regions() -> None:
     assert resolve_location_regions("Malaysia") == ["MY"]
     assert resolve_location_regions("Kuala Lumpur") == ["MY"]
     assert resolve_location_regions("Bangkok") == ["TH"]
+    assert resolve_location_regions("Vietnam") == ["VN"]
+    assert resolve_location_regions("Sydney") == ["AU"]
+    assert resolve_location_regions("Auckland") == ["NZ"]
+    assert resolve_location_regions("Seoul") == ["KR"]
+    assert resolve_location_regions("Taipei") == ["TW"]
     assert resolve_location_regions("Unknown Location") == []
 
 
@@ -41,3 +48,13 @@ def test_platform_as_dict() -> None:
 
 def test_only_operational_platforms_are_available() -> None:
     assert [platform.key for platform in available_platforms()] == ["jobthai", "remotive"]
+
+
+def test_usajobs_is_available_only_after_credentials_are_enabled() -> None:
+    settings = Settings(usajobs_enabled=True)
+
+    assert [platform.key for platform in available_platforms(settings)] == [
+        "jobthai",
+        "remotive",
+        "usajobs",
+    ]

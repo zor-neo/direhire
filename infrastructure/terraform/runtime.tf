@@ -20,16 +20,19 @@ locals {
     maintenance      = { timeout = 240, memory = 1024, concurrency = 2 }
   }
   common_environment = {
-    DIREHIRE_ENVIRONMENT             = "production"
-    DIREHIRE_DATABASE_URL_PARAMETER  = var.database_url_parameter_name
-    DIREHIRE_CORS_ORIGINS            = jsonencode(["https://${var.frontend_domain_name}"])
-    DIREHIRE_FRONTEND_POST_LOGIN_URL = "https://${var.frontend_domain_name}"
-    DIREHIRE_COGNITO_DOMAIN          = "https://${aws_cognito_user_pool_domain.hosted.domain}.auth.${var.aws_region}.amazoncognito.com"
-    DIREHIRE_COGNITO_USER_POOL_ID    = aws_cognito_user_pool.users.id
-    DIREHIRE_COGNITO_CLIENT_ID       = aws_cognito_user_pool_client.web.id
-    DIREHIRE_COGNITO_REDIRECT_URI    = "https://${var.api_domain_name}/api/v1/auth/callback"
-    DIREHIRE_PRIVATE_BUCKET_NAME     = aws_s3_bucket.private.id
-    DIREHIRE_QUEUE_ROUTES            = jsonencode(local.event_queue_routes)
+    DIREHIRE_ENVIRONMENT                  = "production"
+    DIREHIRE_DATABASE_URL_PARAMETER       = var.database_url_parameter_name
+    DIREHIRE_CORS_ORIGINS                 = jsonencode(["https://${var.frontend_domain_name}"])
+    DIREHIRE_FRONTEND_POST_LOGIN_URL      = "https://${var.frontend_domain_name}"
+    DIREHIRE_COGNITO_DOMAIN               = "https://${aws_cognito_user_pool_domain.hosted.domain}.auth.${var.aws_region}.amazoncognito.com"
+    DIREHIRE_COGNITO_USER_POOL_ID         = aws_cognito_user_pool.users.id
+    DIREHIRE_COGNITO_CLIENT_ID            = aws_cognito_user_pool_client.web.id
+    DIREHIRE_COGNITO_REDIRECT_URI         = "https://${var.api_domain_name}/api/v1/auth/callback"
+    DIREHIRE_PRIVATE_BUCKET_NAME          = aws_s3_bucket.private.id
+    DIREHIRE_QUEUE_ROUTES                 = jsonencode(local.event_queue_routes)
+    DIREHIRE_USAJOBS_ENABLED              = tostring(var.usajobs_enabled)
+    DIREHIRE_USAJOBS_API_KEY_PARAMETER    = var.usajobs_api_key_parameter_name
+    DIREHIRE_USAJOBS_USER_AGENT_PARAMETER = var.usajobs_user_agent_parameter_name
   }
 }
 
@@ -144,6 +147,12 @@ resource "aws_iam_role_policy" "worker" {
       }] : [],
       contains(["notification"], each.key) ? [{
         Effect = "Allow", Action = ["ssm:GetParameter"], Resource = "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter/prod/notifications/*"
+      }] : [],
+      contains(["source-discovery"], each.key) && var.usajobs_enabled ? [{
+        Effect = "Allow", Action = ["ssm:GetParameter"], Resource = [
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.usajobs_api_key_parameter_name}",
+          "arn:aws:ssm:${var.aws_region}:${data.aws_caller_identity.current.account_id}:parameter${var.usajobs_user_agent_parameter_name}"
+        ]
       }] : [],
       contains(["documents", "maintenance"], each.key) ? [{
         Effect = "Allow", Action = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"], Resource = "${aws_s3_bucket.private.arn}/*"

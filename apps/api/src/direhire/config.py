@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     public_fetch_max_bytes: int = 2_000_000
     public_fetch_cache_seconds: int = 300
     public_fetch_lease_seconds: int = 120
+    usajobs_enabled: bool = False
+    usajobs_api_key_parameter: str = "/prod/sources/usajobs/api-key"
+    usajobs_user_agent_parameter: str = "/prod/sources/usajobs/user-agent"
     ai_enabled: bool = True
     gemini_project_a_parameter: str = "/prod/ai/gemini/public/project-a/api-key"
     gemini_project_b_parameter: str = "/prod/ai/gemini/public/project-b/api-key"
@@ -78,6 +81,10 @@ class Settings(BaseSettings):
             raise ValueError("production Cognito configuration is incomplete")
         if not self.frontend_post_login_url.startswith("https://"):
             raise ValueError("production post-login URL must use HTTPS")
+        if self.usajobs_enabled and not all(
+            (self.usajobs_api_key_parameter, self.usajobs_user_agent_parameter)
+        ):
+            raise ValueError("USAJOBS credential parameters are incomplete")
         required_events = {
             "watch.discovery.requested",
             "analyze.job.requested",

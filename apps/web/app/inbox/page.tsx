@@ -14,6 +14,7 @@ function sourceLabel(url: string) {
   try {
     const host = new URL(url).hostname.replace(/^www\./, "");
     if (host === "remotive.com") return "View on Remotive";
+    if (host === "usajobs.gov") return "View on USAJOBS";
     return `View original on ${host}`;
   } catch {
     return "View original listing";

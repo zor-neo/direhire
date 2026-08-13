@@ -1,5 +1,6 @@
 from pathlib import Path
 
+from direhire.config import Settings
 from direhire.discovery.service import DiscoveryProcessor
 from direhire.models import (
     Job,
@@ -161,6 +162,56 @@ def test_workable_careers_url_resolves_and_discovers_full_description(
         version = database.scalar(select(JobVersion))
         assert version is not None
         assert version.source_url == "https://apply.workable.com/j/SYNTHETIC-SRE-01"
+
+
+def test_usajobs_platform_discovers_public_federal_job_end_to_end(
+    session_factory: sessionmaker[Session], monkeypatch
+) -> None:
+    settings = Settings(usajobs_enabled=True)
+    monkeypatch.setattr("direhire.sources.platforms.get_settings", lambda: settings)
+    monkeypatch.setattr("direhire.discovery.service.get_settings", lambda: settings)
+    fixture = Path("tests/fixtures/usajobs/search.json").read_text(encoding="utf-8")
+    captured_request: SearchRequest | None = None
+
+    def provide_content(source: object, request: SearchRequest | None) -> str:
+        nonlocal captured_request
+        del source
+        captured_request = request
+        return fixture
+
+    with session_factory() as database:
+        database.add(
+            User(
+                id=str(USER_A),
+                cognito_subject="synthetic-usajobs-user",
+                email="usajobs@example.invalid",
+            )
+        )
+        database.commit()
+        watch = WatchService(database).create(
+            str(USER_A),
+            WatchCreate(
+                name="Federal software",
+                target_terms=["Python"],
+                required_terms=["PostgreSQL"],
+                locations=["Washington, DC"],
+                sources=[{"source_kind": "PLATFORM", "platform_key": "usajobs"}],
+            ),
+        )
+        WatchService(database).activate(watch.id, str(USER_A), "FREE")
+        run = WatchService(database).request_manual_run(watch.id, str(USER_A), "FREE")
+
+        completed = DiscoveryProcessor(database, provide_content).process(run.id)
+
+        assert completed.status == "SUCCEEDED"
+        assert completed.discovered_count == 1
+        assert completed.matched_count == 1
+        assert captured_request is not None
+        assert captured_request.url.startswith("https://data.usajobs.gov/api/search?")
+        assert "Authorization-Key" in captured_request.secret_headers
+        version = database.scalar(select(JobVersion))
+        assert version is not None
+        assert version.source_url == "https://www.usajobs.gov/job/81000100"
 
 
 def test_discovery_creates_canonical_job_and_preserves_partial_success(

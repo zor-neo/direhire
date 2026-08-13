@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Literal, Protocol
 
@@ -39,6 +39,7 @@ class SearchRequest:
     headers: dict[str, str]
     json_body: dict[str, object] | None = None
     cache_seconds: int | None = None
+    secret_headers: dict[str, str] = field(default_factory=dict)
 
 
 class SourceAdapter(Protocol):

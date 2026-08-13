@@ -83,6 +83,24 @@ variable "database_direct_url_parameter_name" {
   default     = "/prod/database/neon/direct-url"
 }
 
+variable "usajobs_enabled" {
+  description = "Expose USAJOBS only after its API key and matching user-agent email exist in SSM."
+  type        = bool
+  default     = false
+}
+
+variable "usajobs_api_key_parameter_name" {
+  description = "Existing SSM SecureString containing the registered USAJOBS API key."
+  type        = string
+  default     = "/prod/sources/usajobs/api-key"
+}
+
+variable "usajobs_user_agent_parameter_name" {
+  description = "Existing SSM SecureString containing the email registered with USAJOBS."
+  type        = string
+  default     = "/prod/sources/usajobs/user-agent"
+}
+
 variable "cognito_domain_prefix" {
   description = "Globally unique Cognito hosted UI domain prefix."
   type        = string

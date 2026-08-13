@@ -91,3 +91,29 @@ Headers are fixed adapter metadata, never imported user browser headers. Request
 - Any platform changes robots/terms, requires authentication, or adds a challenge.
 - Fixture parsing fails because the public response contract changes.
 - Request volume or operational cost makes the current approach unsuitable.
+
+## USAJOBS addendum — 2026-08-13
+
+USAJOBS is classified `DIRECT_HTTP_CONFIGURED`: its official Search API is explicitly intended
+for job-board and application consumption and supplies current public announcements with full
+fields, stable IDs, locations, agency names, qualifications, duties, requirements, eligibility,
+dates, and canonical USAJOBS links.
+
+Production requirements:
+
+- request the free API key through the USAJOBS Developer portal;
+- store the key and the matching registration email in separate SSM SecureStrings;
+- send the email as `User-Agent` and the key as `Authorization-Key` only at request time;
+- request only public announcements with bounded result counts and shared caching;
+- clearly credit USAJOBS and link users to the original announcement;
+- never log, persist in request contracts, or expose the API key to the frontend.
+
+The platform remains hidden while `DIREHIRE_USAJOBS_ENABLED=false`. Enabling it is an explicit
+deployment action after both SSM parameters exist. Normal CI uses only a synthetic response fixture.
+
+References:
+
+- [USAJOBS Search API](https://developer.usajobs.gov/api-reference/get-api-search)
+- [USAJOBS authentication](https://developer.usajobs.gov/guides/authentication)
+- [USAJOBS API access request and terms](https://developer.usajobs.gov/apirequest/)
+- [USAJOBS rate limiting](https://developer.usajobs.gov/guides/rate-limiting)

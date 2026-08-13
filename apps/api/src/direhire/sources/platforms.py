@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass
 
+from direhire.config import Settings, get_settings
+
 
 @dataclass(frozen=True, slots=True)
 class SearchPlatform:
@@ -74,6 +76,17 @@ SEARCH_PLATFORMS: dict[str, SearchPlatform] = {
         logo_filename="remotive.svg",
         description="Remote roles worldwide, attributed to Remotive",
     ),
+    "usajobs": SearchPlatform(
+        key="usajobs",
+        name="USAJOBS",
+        adapter_key="usajobs",
+        regions=("US",),
+        tier="A",
+        search_capable=True,
+        availability="AVAILABLE",
+        logo_filename="usajobs.svg",
+        description="Current US federal public-sector opportunities",
+    ),
     "glassdoor": SearchPlatform(
         key="glassdoor",
         name="Glassdoor",
@@ -127,6 +140,11 @@ REGION_NAMES: dict[str, str] = {
     "CZ": "Czech Republic",
     "SK": "Slovakia",
     "KH": "Cambodia",
+    "VN": "Vietnam",
+    "AU": "Australia",
+    "NZ": "New Zealand",
+    "KR": "South Korea",
+    "TW": "Taiwan",
 }
 
 # Mapping from common location inputs to region codes.
@@ -147,8 +165,23 @@ LOCATION_TO_REGIONS: dict[str, list[str]] = {
     "hong kong": ["HK"],
     "cambodia": ["KH"],
     "phnom penh": ["KH"],
+    "vietnam": ["VN"],
+    "viet nam": ["VN"],
+    "ho chi minh city": ["VN"],
+    "hanoi": ["VN"],
     "japan": ["JP"],
     "tokyo": ["JP"],
+    "australia": ["AU"],
+    "sydney": ["AU"],
+    "melbourne": ["AU"],
+    "new zealand": ["NZ"],
+    "auckland": ["NZ"],
+    "wellington": ["NZ"],
+    "south korea": ["KR"],
+    "korea": ["KR"],
+    "seoul": ["KR"],
+    "taiwan": ["TW"],
+    "taipei": ["TW"],
     "united states": ["US"],
     "usa": ["US"],
     "new york": ["US"],
@@ -163,11 +196,11 @@ LOCATION_TO_REGIONS: dict[str, list[str]] = {
     "europe": ["FR", "DE", "ES", "NL", "GB", "CZ", "SK"],
     "eu": ["FR", "DE", "ES", "NL", "GB", "CZ", "SK"],
     "remote": [],  # No region filter — show all platforms
-    "remote apac": ["MY", "SG", "TH", "ID", "PH", "HK", "JP"],
+    "remote apac": ["MY", "SG", "TH", "ID", "PH", "HK", "JP", "VN", "AU", "NZ", "KR", "TW"],
     "remote europe": ["FR", "DE", "ES", "NL", "GB", "CZ", "SK"],
-    "apac": ["MY", "SG", "TH", "ID", "PH", "HK", "JP"],
-    "sea": ["MY", "SG", "TH", "ID", "PH", "KH"],
-    "southeast asia": ["MY", "SG", "TH", "ID", "PH", "KH"],
+    "apac": ["MY", "SG", "TH", "ID", "PH", "HK", "JP", "VN", "AU", "NZ", "KR", "TW"],
+    "sea": ["MY", "SG", "TH", "ID", "PH", "KH", "VN"],
+    "southeast asia": ["MY", "SG", "TH", "ID", "PH", "KH", "VN"],
 }
 
 
@@ -182,10 +215,22 @@ def platforms_for_regions(region_codes: list[str]) -> list[SearchPlatform]:
     ]
 
 
-def available_platforms() -> list[SearchPlatform]:
+def platform_is_available(
+    platform: SearchPlatform, settings: Settings | None = None
+) -> bool:
+    if platform.availability != "AVAILABLE":
+        return False
+    if platform.key == "usajobs":
+        return (settings or get_settings()).usajobs_enabled
+    return True
+
+
+def available_platforms(settings: Settings | None = None) -> list[SearchPlatform]:
     """Return only platforms backed by an operational, fixture-tested adapter."""
     return [
-        platform for platform in SEARCH_PLATFORMS.values() if platform.availability == "AVAILABLE"
+        platform
+        for platform in SEARCH_PLATFORMS.values()
+        if platform_is_available(platform, settings)
     ]
 
 
