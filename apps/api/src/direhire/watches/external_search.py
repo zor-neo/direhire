@@ -46,6 +46,50 @@ def external_searches_for(watch: JobWatch) -> list[ExternalSearch]:
                 ),
             )
         )
+    if "VN" in regions:
+        searches.extend(
+            (
+                ExternalSearch(
+                    "vietnamworks",
+                    "VietnamWorks",
+                    "Vietnam",
+                    _url("https://www.vietnamworks.com/jobs", q=keywords),
+                ),
+                ExternalSearch(
+                    "topcv-vietnam",
+                    "TopCV Vietnam",
+                    "Vietnam",
+                    _url("https://www.topcv.vn/tim-viec-lam", keyword=keywords),
+                ),
+            )
+        )
+    if "JP" in regions:
+        searches.append(
+            ExternalSearch(
+                "daijob",
+                "Daijob",
+                "Japan — international and bilingual roles",
+                _url("https://www.daijob.com/en/jobs/search", keyword=keywords),
+            )
+        )
+    if "KR" in regions:
+        searches.append(
+            ExternalSearch(
+                "jobkorea",
+                "JobKorea",
+                "South Korea",
+                _url("https://www.jobkorea.co.kr/Search/", stext=keywords),
+            )
+        )
+    if "TW" in regions:
+        searches.append(
+            ExternalSearch(
+                "104-taiwan",
+                "104 Job Bank",
+                "Taiwan",
+                _url("https://www.104.com.tw/jobs/search/", keyword=keywords),
+            )
+        )
     if regions.intersection({"US", "GB"}):
         searches.append(
             ExternalSearch(
@@ -98,6 +142,8 @@ def _seek_searches(
         "PH": ("jobstreet-ph", "JobStreet Philippines", "https://ph.jobstreet.com/jobs"),
         "TH": ("jobsdb-th", "JobsDB Thailand", "https://th.jobsdb.com/jobs"),
         "HK": ("jobsdb-hk", "JobsDB Hong Kong", "https://hk.jobsdb.com/jobs"),
+        "AU": ("seek-au", "SEEK Australia", "https://www.seek.com.au/jobs"),
+        "NZ": ("seek-nz", "SEEK New Zealand", "https://nz.seek.com/jobs"),
     }
     return [
         ExternalSearch(key, name, region, _url(endpoint, keywords=keywords, where=location))

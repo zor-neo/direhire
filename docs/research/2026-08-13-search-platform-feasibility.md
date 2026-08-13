@@ -117,3 +117,25 @@ References:
 - [USAJOBS authentication](https://developer.usajobs.gov/guides/authentication)
 - [USAJOBS API access request and terms](https://developer.usajobs.gov/apirequest/)
 - [USAJOBS rate limiting](https://developer.usajobs.gov/guides/rate-limiting)
+
+## External-market catalog addendum — 2026-08-13
+
+These sites are deliberate user-initiated handoffs, not DireHire ingestion adapters. DireHire
+builds an ordinary public search URL from the Watch target role and first location, clearly tells
+the user that they are leaving DireHire, and does not retrieve, proxy, normalize, or store the
+external results.
+
+| Market | External destination | Selection reason |
+|---|---|---|
+| Vietnam | VietnamWorks + TopCV | Two current, high-volume local recruitment platforms; external-only because automated access is restricted |
+| Japan | Daijob | Active international/bilingual job search suited to the product's cross-border audience |
+| Malaysia | JobStreet Malaysia | SEEK's active local employment marketplace |
+| Philippines | JobStreet Philippines | SEEK's active local employment marketplace |
+| Australia | SEEK Australia | Current leading general employment marketplace in Australia |
+| New Zealand | SEEK New Zealand | Current leading general employment marketplace in New Zealand |
+| South Korea | JobKorea | Major active Korean job board, also identified by Korean government guidance |
+| Taiwan | 104 Job Bank | Major active Taiwanese job marketplace with current listings |
+
+Public destinations were checked using normal HTTP navigation. A successful page response supports
+external navigation only; it does not grant permission for automated extraction. If a destination
+changes or becomes unavailable, update the catalog rather than escalating access behavior.

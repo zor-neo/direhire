@@ -16,8 +16,10 @@ Research outcomes are classified as `DIRECT_HTTP`, `BROWSER`, `LIMITED`, `PAUSED
 
 ## Current State — 2026-08-13
 
-Phases 1–8 below are implemented and verified, subject to one deferred visual browser walkthrough.
-JobThai and Remotive are selectable live platforms (`DIRECT_HTTP`). Supported company career
+Phases 1–9 below are implemented and verified, subject to one deferred visual browser walkthrough.
+JobThai and Remotive are selectable live platforms (`DIRECT_HTTP`). USAJOBS is a live-capable
+official API platform that becomes selectable after its free registered credentials are enabled.
+Supported company career
 pages include Greenhouse, Lever, Ashby, Recruitee, Personio, Pinpoint, and Workable. JobStreet
 and JobsDB remain paused for ingestion but are available as clearly labeled user-initiated
 external searches. `task.md` is the concise completion checklist and
@@ -41,6 +43,7 @@ Synthetic fixtures remain test inputs only. A fixture-powered interactive demo i
 | **6** | Frontend UX revamp (logo cards, experience dropdown, auto-detect URLs, auto-name) | Phase 2, 5 |
 | **7** | Live Remotive platform and Workable ATS support | Phase R, 2 |
 | **8** | Owner-scoped external search handoff for non-ingested markets | Phase 6 |
+| **9** | USAJOBS live adapter and expanded APAC external-market coverage | Phase R, 8 |
 | **Future** | Optional fixture-powered portfolio demo mode | After production launch; not current scope |
 
 ---

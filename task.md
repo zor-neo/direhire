@@ -72,6 +72,16 @@ Direction recorded: practical public-source research before adapter design; disp
 - [x] Make third-party navigation and data handoff explicit in the UI
 - [x] Do not fetch, proxy, store, or present external-site results as DireHire matches
 
+## Phase 9 — USA Public Sector and APAC Coverage
+- [x] Add official USAJOBS Search API adapter with public-only, full-field requests
+- [x] Inject USAJOBS API key and registered email from separate SSM SecureStrings at request time
+- [x] Hide USAJOBS until credentials are explicitly enabled in Terraform
+- [x] Attribute federal announcements and link directly to USAJOBS
+- [x] Add VietnamWorks and TopCV as Vietnam external searches
+- [x] Add one primary external site for Japan, Malaysia, Philippines, Australia, New Zealand,
+      South Korea, and Taiwan
+- [x] Verify current public destinations and encode only target role/location where supported
+
 ## Future — Fixture Demo (Deferred)
 - [ ] Add an optional fixture-powered interactive portfolio/demo mode after production launch
 - [ ] Keep demo data synthetic, deterministic, and visibly labeled
@@ -83,7 +93,7 @@ search handoff. Test fixtures remain in CI for parser reliability; they are not 
 ## Verification — 2026-08-13
 
 - [x] `uv run ruff check apps/api/src tests migrations`
-- [x] Full backend suite: 116 tests passed
+- [x] Full backend suite: 124 tests passed
 - [x] Frontend ESLint and TypeScript checks
 - [x] Next.js production static build (12/12 pages)
 - [x] OpenAPI export and TypeScript client regeneration
