@@ -49,11 +49,11 @@ jobs:
           pnpm typecheck
           pnpm build
           pnpm audit --prod
-          if rg --files-with-matches 'http://localhost:8000/api/v1' apps/web/out; then
+          if grep --recursive --files-with-matches 'http://localhost:8000/api/v1' apps/web/out; then
             echo 'Production frontend contains the local API fallback.' >&2
             exit 1
           fi
-          rg --quiet "https://${{ vars.API_DOMAIN_NAME }}/api/v1" apps/web/out
+          grep --recursive --quiet "https://${{ vars.API_DOMAIN_NAME }}/api/v1" apps/web/out
       - name: Build and push immutable images
         shell: bash
         run: |
