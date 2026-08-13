@@ -240,7 +240,7 @@ class AnalyzeJobService:
         if row.private_artifact_id:
             artifact = self.session.get(PrivateAiArtifact, row.private_artifact_id)
             if artifact is not None and artifact.status == "SUCCEEDED":
-                return artifact.content
+                return artifact.content if isinstance(artifact.content, dict) else None
         return None
 
     def _derived_status(self, row: AdHocJobAnalysis) -> tuple[str, str | None]:

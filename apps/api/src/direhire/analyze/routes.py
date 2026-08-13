@@ -44,7 +44,7 @@ class AnalyzeJobRead(BaseModel):
     normalized_url: str | None
     job_id: str | None
     status: str
-    analysis: JobDemandProfileContent | None = None
+    analysis: JobDemandProfileContent | dict[str, object] | None = None
     similar_openings: list[SimilarOpening]
     saved: bool
     error_code: str | None

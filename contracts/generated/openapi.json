@@ -33,9 +33,14 @@
                 "$ref": "#/components/schemas/JobDemandProfileContent"
               },
               {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
                 "type": "null"
               }
-            ]
+            ],
+            "title": "Analysis"
           },
           "created_at": {
             "format": "date-time",

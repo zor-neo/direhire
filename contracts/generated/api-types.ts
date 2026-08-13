@@ -1182,7 +1182,10 @@ export interface components {
         };
         /** AnalyzeJobRead */
         AnalyzeJobRead: {
-            analysis?: components["schemas"]["JobDemandProfileContent"] | null;
+            /** Analysis */
+            analysis?: components["schemas"]["JobDemandProfileContent"] | {
+                [key: string]: unknown;
+            } | null;
             /**
              * Created At
              * Format: date-time
