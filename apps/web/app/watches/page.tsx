@@ -38,7 +38,7 @@ export default function WatchesPage() {
         body: JSON.stringify({
           name: data.get("name"), target_terms: commaList(data.get("targets")),
           required_terms: commaList(data.get("required")), excluded_terms: commaList(data.get("excluded")),
-          locations: commaList(data.get("locations")), experience_target: data.get("experience") || null,
+          locations: commaList(data.get("locations")), experience_level: data.get("experience") || "ANY",
           posting_age_days: Number(data.get("age")),
           sources: sourceUrl ? [{ source_kind: "CUSTOM_URL", adapter_key: data.get("adapter"), url: sourceUrl }] : [],
         }),

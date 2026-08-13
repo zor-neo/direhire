@@ -14,6 +14,16 @@ class WatchStatus(StrEnum):
     ARCHIVED = "ARCHIVED"
 
 
+class ExperienceLevel(StrEnum):
+    ANY = "ANY"
+    ENTRY = "ENTRY"
+    JUNIOR = "JUNIOR"
+    MID = "MID"
+    SENIOR = "SENIOR"
+    LEAD = "LEAD"
+    EXECUTIVE = "EXECUTIVE"
+
+
 class WatchSourceInput(BaseModel):
     source_kind: Literal["PLATFORM", "CUSTOM_URL"]
     adapter_key: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_-]+$")
@@ -49,7 +59,7 @@ class WatchCreate(BaseModel):
     employment_types: list[
         Literal["FULL_TIME", "PART_TIME", "CONTRACT", "TEMPORARY", "INTERNSHIP", "FREELANCE"]
     ] = Field(default_factory=list)
-    experience_target: str | None = Field(default=None, max_length=64)
+    experience_level: ExperienceLevel = Field(default=ExperienceLevel.ANY)
     raw_intent: str | None = Field(default=None, max_length=2000)
     posting_age_days: int | None = Field(default=30)
     sources: list[WatchSourceInput] = Field(default_factory=list, max_length=20)
@@ -87,7 +97,7 @@ class WatchRead(BaseModel):
     locations: list[str]
     work_arrangements: list[str]
     employment_types: list[str]
-    experience_target: str | None
+    experience_level: str
     raw_intent: str | None
     posting_age_days: int | None
     sources: list[WatchSourceRead]

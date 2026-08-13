@@ -40,7 +40,8 @@ class JobWatch(Base):
     posting_age_days: Mapped[int | None] = mapped_column(nullable=True, default=30)
     work_arrangements: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
     employment_types: Mapped[list[str]] = mapped_column(JSON, nullable=False, default=list)
-    experience_target: Mapped[str | None] = mapped_column(String(64))
+    experience_level: Mapped[str] = mapped_column(String(16), nullable=False, default="ANY")
+    search_expansion: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     sources: Mapped[list[WatchSource]] = relationship(
