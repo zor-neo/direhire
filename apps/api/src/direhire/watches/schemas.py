@@ -150,3 +150,10 @@ class WatchRunRead(BaseModel):
     sources_failed: int
     discovered_count: int
     matched_count: int
+
+
+class ExternalSearchRead(BaseModel):
+    key: str
+    name: str
+    coverage: str
+    url: str

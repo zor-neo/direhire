@@ -37,6 +37,25 @@ def test_create_normalizes_and_lists_only_owned_watches(client: TestClient) -> N
     assert client.post(f"/api/v1/watches/{created['id']}/activate").status_code == 404
 
 
+def test_external_searches_are_owner_scoped_and_do_not_fetch_sources(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/watches",
+        json={"target_terms": ["IT Support"], "locations": ["Phnom Penh"]},
+    )
+    watch = response.json()
+
+    searches = client.get(f"/api/v1/watches/{watch['id']}/external-searches")
+
+    assert searches.status_code == 200
+    assert [item["key"] for item in searches.json()[:3]] == [
+        "bongthom",
+        "jobnet-cambodia",
+        "khmer24",
+    ]
+    use_user(app, USER_B)
+    assert client.get(f"/api/v1/watches/{watch['id']}/external-searches").status_code == 404
+
+
 def test_watch_name_is_generated_when_omitted(client: TestClient) -> None:
     response = client.post(
         "/api/v1/watches",

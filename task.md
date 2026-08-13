@@ -59,10 +59,31 @@ Direction recorded: practical public-source research before adapter design; disp
 - [x] Neutral text/initial platform identity cards
 - [x] Responsive and accessible styles for new components
 
+## Phase 7 — Production Source Breadth
+- [x] Add Remotive as a live, attributed, rate-safe remote-jobs platform
+- [x] Share Remotive corpus fetches for six hours to respect its four-requests-per-day guidance
+- [x] Expose original source links in Job Inbox
+- [x] Add Workable career-page detection and full-description public widget adapter
+- [x] Keep JobStreet/JobsDB ingestion paused while permission constraints remain
+
+## Phase 8 — External Search Handoff
+- [x] Add owner-scoped external search links derived from a Watch
+- [x] Cover SEEK markets, Cambodia local boards, Dice, Welcome to the Jungle, LinkedIn, and Indeed
+- [x] Make third-party navigation and data handoff explicit in the UI
+- [x] Do not fetch, proxy, store, or present external-site results as DireHire matches
+
+## Future — Fixture Demo (Deferred)
+- [ ] Add an optional fixture-powered interactive portfolio/demo mode after production launch
+- [ ] Keep demo data synthetic, deterministic, and visibly labeled
+- [ ] Keep fixture demo code outside the production discovery path and disabled by default
+
+Current priority: production delivery through live platforms, supported ATS feeds, and external
+search handoff. Test fixtures remain in CI for parser reliability; they are not a user-facing mode.
+
 ## Verification — 2026-08-13
 
 - [x] `uv run ruff check apps/api/src tests migrations`
-- [x] Full backend suite: 106 tests passed
+- [x] Full backend suite: 116 tests passed
 - [x] Frontend ESLint and TypeScript checks
 - [x] Next.js production static build (12/12 pages)
 - [x] OpenAPI export and TypeScript client regeneration

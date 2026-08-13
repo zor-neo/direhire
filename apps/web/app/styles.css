@@ -562,6 +562,36 @@ select {
 .detection-label.detected { color: var(--success); }
 .add-url { justify-self: start; }
 .create-watch-button { justify-self: start; min-width: 9rem; }
+.watch-item { display: grid !important; align-items: stretch !important; }
+.watch-item-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+.external-search-panel {
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--subtle);
+}
+.external-search-panel > p { margin: 0; }
+.external-search-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.55rem; }
+.external-search-grid a {
+  display: grid;
+  gap: 0.15rem;
+  padding: 0.65rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  color: var(--ink);
+  text-decoration: none;
+}
+.external-search-grid a:hover { border-color: var(--accent); }
+.external-search-grid a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.external-search-grid span { color: var(--muted); font-size: 0.75rem; }
 
 /* ------------------------------------------------------------
    Lists
@@ -879,6 +909,8 @@ time { color: var(--faint); font-size: 0.82rem; }
   .danger-zone { grid-column: auto; }
   .field-row { grid-template-columns: 1fr; }
   .platform-grid, .choice-grid { grid-template-columns: 1fr; }
+  .external-search-grid { grid-template-columns: 1fr; }
+  .watch-item-summary { align-items: stretch; flex-direction: column; }
   .item-list > li, .job-list > li { align-items: stretch; flex-direction: column; }
   .compact-field { width: 100%; }
   dl { grid-template-columns: 1fr; gap: 0.15rem; }

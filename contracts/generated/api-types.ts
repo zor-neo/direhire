@@ -1009,6 +1009,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/watches/{watch_id}/external-searches": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List External Searches */
+        get: operations["list_external_searches_api_v1_watches__watch_id__external_searches_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/watches/{watch_id}/pause": {
         parameters: {
             query?: never;
@@ -1439,6 +1456,17 @@ export interface components {
             id: string;
             /** Status */
             status: string;
+        };
+        /** ExternalSearchRead */
+        ExternalSearchRead: {
+            /** Coverage */
+            coverage: string;
+            /** Key */
+            key: string;
+            /** Name */
+            name: string;
+            /** Url */
+            url: string;
         };
         /** HTTPValidationError */
         HTTPValidationError: {
@@ -4227,6 +4255,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WatchRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_external_searches_api_v1_watches__watch_id__external_searches_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                watch_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalSearchRead"][];
                 };
             };
             /** @description Validation Error */

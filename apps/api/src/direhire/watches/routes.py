@@ -12,7 +12,8 @@ from direhire.sources.platforms import (
     platform_as_dict,
     resolve_location_regions,
 )
-from direhire.watches.schemas import WatchCreate, WatchRead, WatchRunRead
+from direhire.watches.external_search import external_searches_for
+from direhire.watches.schemas import ExternalSearchRead, WatchCreate, WatchRead, WatchRunRead
 from direhire.watches.service import WatchService
 
 router = APIRouter(prefix="/watches", tags=["Job Watches"])
@@ -47,6 +48,12 @@ def list_watches(user: User, session: DbSession) -> object:
 @router.get("/{watch_id}", response_model=WatchRead)
 def get_watch(watch_id: str, user: User, session: DbSession) -> object:
     return WatchService(session).get(watch_id, str(user.id))
+
+
+@router.get("/{watch_id}/external-searches", response_model=list[ExternalSearchRead])
+def list_external_searches(watch_id: str, user: User, session: DbSession) -> object:
+    watch = WatchService(session).get(watch_id, str(user.id))
+    return external_searches_for(watch)
 
 
 @router.put("/{watch_id}", response_model=WatchRead)

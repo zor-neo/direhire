@@ -16,11 +16,17 @@ Research outcomes are classified as `DIRECT_HTTP`, `BROWSER`, `LIMITED`, `PAUSED
 
 ## Current State — 2026-08-13
 
-Phases 1–6 below are implemented and verified, subject to one deferred visual browser walkthrough.
-JobThai is the first selectable platform (`DIRECT_HTTP`); JobStreet and JobsDB remain recorded
-but hidden (`PAUSED`). `task.md` is the concise completion checklist and
+Phases 1–8 below are implemented and verified, subject to one deferred visual browser walkthrough.
+JobThai and Remotive are selectable live platforms (`DIRECT_HTTP`). Supported company career
+pages include Greenhouse, Lever, Ashby, Recruitee, Personio, Pinpoint, and Workable. JobStreet
+and JobsDB remain paused for ingestion but are available as clearly labeled user-initiated
+external searches. `task.md` is the concise completion checklist and
 `docs/research/2026-08-13-search-platform-feasibility.md` contains the evidence behind those
 source decisions.
+
+Production delivery prioritizes live sources, public ATS feeds, and external search handoff.
+Synthetic fixtures remain test inputs only. A fixture-powered interactive demo is recorded as
+**Future** work and is intentionally outside the current production runtime and deployment path.
 
 ## Scope Summary
 
@@ -33,6 +39,9 @@ source decisions.
 | **4** | Asynchronous AI query expansion after Watch creation | Phase 2, 3 |
 | **5** | First SearchAdapter implementation (JobThai); SEEK Group paused pending permission | Phase R |
 | **6** | Frontend UX revamp (logo cards, experience dropdown, auto-detect URLs, auto-name) | Phase 2, 5 |
+| **7** | Live Remotive platform and Workable ATS support | Phase R, 2 |
+| **8** | Owner-scoped external search handoff for non-ingested markets | Phase 6 |
+| **Future** | Optional fixture-powered portfolio demo mode | After production launch; not current scope |
 
 ---
 

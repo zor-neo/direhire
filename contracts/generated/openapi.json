@@ -1108,6 +1108,34 @@
         "title": "ExportRead",
         "type": "object"
       },
+      "ExternalSearchRead": {
+        "properties": {
+          "coverage": {
+            "title": "Coverage",
+            "type": "string"
+          },
+          "key": {
+            "title": "Key",
+            "type": "string"
+          },
+          "name": {
+            "title": "Name",
+            "type": "string"
+          },
+          "url": {
+            "title": "Url",
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "name",
+          "coverage",
+          "url"
+        ],
+        "title": "ExternalSearchRead",
+        "type": "object"
+      },
       "HTTPValidationError": {
         "properties": {
           "detail": {
@@ -5835,6 +5863,52 @@
           }
         },
         "summary": "Archive Watch",
+        "tags": [
+          "Job Watches"
+        ]
+      }
+    },
+    "/api/v1/watches/{watch_id}/external-searches": {
+      "get": {
+        "operationId": "list_external_searches_api_v1_watches__watch_id__external_searches_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "watch_id",
+            "required": true,
+            "schema": {
+              "title": "Watch Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": {
+                    "$ref": "#/components/schemas/ExternalSearchRead"
+                  },
+                  "title": "Response List External Searches Api V1 Watches  Watch Id  External Searches Get",
+                  "type": "array"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "List External Searches",
         "tags": [
           "Job Watches"
         ]

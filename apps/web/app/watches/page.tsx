@@ -10,6 +10,7 @@ import { detectAdapter } from "../lib/detect-adapter";
 import { useInitialLoad } from "../lib/use-initial-load";
 
 type Watch = components["schemas"]["WatchRead"];
+type ExternalSearch = components["schemas"]["ExternalSearchRead"];
 
 const experienceLevels = [
   ["ANY", "Any experience"],
@@ -46,6 +47,8 @@ export default function WatchesPage() {
   const [location, setLocation] = useState("");
   const [message, setMessage] = useState("Loading Watches…");
   const [busy, setBusy] = useState(false);
+  const [externalByWatch, setExternalByWatch] = useState<Record<string, ExternalSearch[]>>({});
+  const [expandedExternal, setExpandedExternal] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -156,6 +159,24 @@ export default function WatchesPage() {
       setMessage(displayError(error));
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function toggleExternalSearch(watch: Watch) {
+    if (expandedExternal === watch.id) {
+      setExpandedExternal(null);
+      return;
+    }
+    setExpandedExternal(watch.id);
+    if (externalByWatch[watch.id]) return;
+    try {
+      const searches = await apiRequest<ExternalSearch[]>(
+        `/watches/${watch.id}/external-searches`,
+      );
+      setExternalByWatch((current) => ({ ...current, [watch.id]: searches }));
+    } catch (error) {
+      setExpandedExternal(null);
+      setMessage(displayError(error));
     }
   }
 
@@ -275,7 +296,56 @@ export default function WatchesPage() {
 
         <section className="surface" aria-labelledby="your-watches">
           <h2 id="your-watches">Your Watches</h2>
-          {watches.length === 0 ? <div className="empty"><h3>No Watches yet</h3><p>Create a focused Watch to begin discovery.</p></div> : <ul className="item-list">{watches.map((watch) => <li key={watch.id}><div><span className={`badge ${watch.status.toLowerCase()}`}>{watch.status}</span><h3>{watch.name}</h3><p>{watch.target_terms.join(" · ")}</p></div><div className="row-actions">{watch.status === "DRAFT" && <button onClick={() => action(watch, "activate")} disabled={busy}>Activate</button>}{watch.status === "ACTIVE" && <><button onClick={() => action(watch, "runs")} disabled={busy}>Run now</button><button onClick={() => action(watch, "pause")} disabled={busy}>Pause</button></>}{watch.status === "PAUSED" && <button onClick={() => action(watch, "activate")} disabled={busy}>Resume</button>}<button className="quiet" onClick={() => action(watch, "archive")} disabled={busy}>Archive</button></div></li>)}</ul>}
+          {watches.length === 0 ? (
+            <div className="empty"><h3>No Watches yet</h3><p>Create a focused Watch to begin discovery.</p></div>
+          ) : (
+            <ul className="item-list watch-list">
+              {watches.map((watch) => (
+                <li className="watch-item" key={watch.id}>
+                  <div className="watch-item-summary">
+                    <div>
+                      <span className={`badge ${watch.status.toLowerCase()}`}>{watch.status}</span>
+                      <h3>{watch.name}</h3>
+                      <p>{watch.target_terms.join(" · ")}</p>
+                    </div>
+                    <div className="row-actions">
+                      {watch.status === "DRAFT" && <button onClick={() => action(watch, "activate")} disabled={busy}>Activate</button>}
+                      {watch.status === "ACTIVE" && <><button onClick={() => action(watch, "runs")} disabled={busy}>Run now</button><button onClick={() => action(watch, "pause")} disabled={busy}>Pause</button></>}
+                      {watch.status === "PAUSED" && <button onClick={() => action(watch, "activate")} disabled={busy}>Resume</button>}
+                      <button
+                        aria-expanded={expandedExternal === watch.id}
+                        onClick={() => void toggleExternalSearch(watch)}
+                      >
+                        Search externally
+                      </button>
+                      <button className="quiet" onClick={() => action(watch, "archive")} disabled={busy}>Archive</button>
+                    </div>
+                  </div>
+                  {expandedExternal === watch.id && (
+                    <div className="external-search-panel">
+                      <p>
+                        These links open third-party sites. DireHire does not retrieve or store
+                        their results. Your target role and first location are included in search
+                        links when the site supports them.
+                      </p>
+                      {!externalByWatch[watch.id] ? (
+                        <span className="supporting">Preparing links…</span>
+                      ) : (
+                        <div className="external-search-grid">
+                          {externalByWatch[watch.id].map((search) => (
+                            <a key={search.key} href={search.url} target="_blank" rel="noreferrer">
+                              <strong>{search.name}</strong>
+                              <span>{search.coverage}</span>
+                            </a>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </li>
+              ))}
+            </ul>
+          )}
         </section>
       </div>
     </>
