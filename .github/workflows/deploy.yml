@@ -41,7 +41,19 @@ jobs:
       - run: uv sync --frozen
       - run: corepack enable && pnpm install --frozen-lockfile
       - run: uv run ruff format --check . && uv run ruff check . && uv run pytest
-      - run: pnpm lint && pnpm typecheck && pnpm build && pnpm audit --prod
+      - name: Validate and build production frontend
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://${{ vars.API_DOMAIN_NAME }}/api/v1
+        run: |
+          pnpm lint
+          pnpm typecheck
+          pnpm build
+          pnpm audit --prod
+          if rg --files-with-matches 'http://localhost:8000/api/v1' apps/web/out; then
+            echo 'Production frontend contains the local API fallback.' >&2
+            exit 1
+          fi
+          rg --quiet "https://${{ vars.API_DOMAIN_NAME }}/api/v1" apps/web/out
       - name: Build and push immutable images
         shell: bash
         run: |

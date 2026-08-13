@@ -393,7 +393,6 @@ main.landing-main {
   border-radius: 1rem;
   background: var(--card);
   box-shadow: var(--shadow-md);
-  transform: rotate(1deg);
 }
 .preview-label { color: var(--faint); font-size: 0.7rem; font-weight: 750; letter-spacing: 0.08em; text-transform: uppercase; }
 .preview-row {
