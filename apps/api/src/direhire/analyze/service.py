@@ -9,6 +9,7 @@ from datetime import UTC, datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from direhire.ai.contracts import JOB_ANALYSIS_PROMPT_VERSION, JOB_DEMAND_SCHEMA_VERSION
 from direhire.ai.private_service import PrivateAiRequestService
 from direhire.ai.service import queue_public_job_analysis
 from direhire.entitlements.service import ANALYZE_JOB_MONTHLY_LIMIT, EntitlementService
@@ -46,14 +47,27 @@ class AnalyzeJobService:
         existing = self.session.scalar(
             select(AdHocJobAnalysis).where(AdHocJobAnalysis.idempotency_key == key)
         )
-        if existing is not None:
-            return existing
-        self._require_quota(user_id, plan)
         version = self.session.scalar(
             select(JobVersion)
             .where(JobVersion.source_url == normalized)
             .order_by(JobVersion.captured_at.desc())
         )
+        if (
+            existing is not None
+            and existing.demand_profile_id
+            and version is not None
+        ):
+            demand = self.session.get(JobDemandProfile, existing.demand_profile_id)
+            if demand is None or demand.schema_version != JOB_DEMAND_SCHEMA_VERSION:
+                new_demand = queue_public_job_analysis(
+                    self.session, version, correlation_id=correlation_id
+                )
+                existing.demand_profile_id = new_demand.id
+                existing.status = "ANALYSIS_QUEUED"
+                self.session.commit()
+            return existing
+
+        self._require_quota(user_id, plan)
         row = AdHocJobAnalysis(
             user_id=user_id,
             input_type="PUBLIC_URL",
@@ -234,7 +248,12 @@ class AnalyzeJobService:
     def _content(self, row: AdHocJobAnalysis) -> dict[str, object] | None:
         if row.demand_profile_id:
             demand = self.session.get(JobDemandProfile, row.demand_profile_id)
-            if demand is not None and demand.status == "SUCCEEDED" and demand.profile:
+            if (
+                demand is not None
+                and demand.status == "SUCCEEDED"
+                and demand.schema_version == JOB_DEMAND_SCHEMA_VERSION
+                and demand.profile
+            ):
                 value = demand.profile.get("content", demand.profile)
                 return value if isinstance(value, dict) else None
         if row.private_artifact_id:
@@ -247,6 +266,8 @@ class AnalyzeJobService:
         if row.demand_profile_id:
             demand = self.session.get(JobDemandProfile, row.demand_profile_id)
             if demand is not None:
+                if demand.schema_version != JOB_DEMAND_SCHEMA_VERSION:
+                    return "OUTDATED_SCHEMA", None
                 return demand.status, demand.error_code
         if row.private_artifact_id:
             artifact = self.session.get(PrivateAiArtifact, row.private_artifact_id)
@@ -265,7 +286,10 @@ class AnalyzeJobService:
             select(JobDemandProfile, JobVersion, Job)
             .join(JobVersion, JobVersion.id == JobDemandProfile.job_version_id)
             .join(Job, Job.id == JobVersion.job_id)
-            .where(JobDemandProfile.status == "SUCCEEDED")
+            .where(
+                JobDemandProfile.status == "SUCCEEDED",
+                JobDemandProfile.schema_version == JOB_DEMAND_SCHEMA_VERSION,
+            )
             .order_by(JobVersion.captured_at.desc())
             .limit(100)
         )
@@ -317,7 +341,9 @@ class AnalyzeJobService:
     @staticmethod
     def _key(user_id: str, input_type: str, value: str) -> str:
         digest = hashlib.sha256(value.encode()).hexdigest()
-        return f"analyze:{user_id}:{input_type}:{digest}"
+        v_num = JOB_DEMAND_SCHEMA_VERSION
+        v_prompt = JOB_ANALYSIS_PROMPT_VERSION
+        return f"analyze:{user_id}:{input_type}:{digest}:v{v_num}:{v_prompt}"
 
 
 class PublicAnalyzeJobProcessor:

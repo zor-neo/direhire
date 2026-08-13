@@ -141,16 +141,11 @@ export default function AnalyzePage() {
                           : item.normalized_url ?? "Public job"}
                       </h3>
 
-                      {vm ? (
+                      {vm && (
                         <div style={{ marginTop: "1rem" }}>
                           <JobAnalysisView viewModel={vm} />
                         </div>
-                      ) : item.analysis ? (
-                        <details>
-                          <summary>View raw analysis</summary>
-                          <pre>{JSON.stringify(item.analysis, null, 2)}</pre>
-                        </details>
-                      ) : null}
+                      )}
 
                       {item.similar_openings.length > 0 && (
                         <p>{item.similar_openings.length} similar opening(s) already known.</p>
