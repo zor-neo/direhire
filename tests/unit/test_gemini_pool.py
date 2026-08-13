@@ -94,4 +94,3 @@ def test_gemini_pool_falls_back_to_secondary_model_when_all_routes_rate_limited(
         assert transport.calls[1] == ("gemini-3.6-flash", "key-b")
         assert transport.calls[2] == ("gemini-3.6-flash", "key-c")
         assert transport.calls[3] == ("gemini-3.5-flash", "key-a")
-
