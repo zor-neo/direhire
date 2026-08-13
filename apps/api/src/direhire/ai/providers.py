@@ -177,10 +177,8 @@ class GeminiPoolProvider:
                 route.consecutive_failures += 1
                 route.last_error_code = exc.code
                 route.health = "COOLDOWN" if exc.retryable else "DEGRADED"
-                if exc.retryable:
-                    route.cooldown_until = utcnow() + timedelta(seconds=self.cooldown_seconds)
-                    continue
-                raise
+                route.cooldown_until = utcnow() + timedelta(seconds=self.cooldown_seconds)
+                continue
             route.health = "HEALTHY"
             route.cooldown_until = None
             route.consecutive_failures = 0
