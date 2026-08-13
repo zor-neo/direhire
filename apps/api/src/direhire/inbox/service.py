@@ -110,9 +110,7 @@ class InboxService:
         if version is None:
             raise AppError("JOB_VERSION_NOT_FOUND", "No job content available to analyze.", 404)
 
-        profile = retry_public_job_analysis(
-            self.session, version, correlation_id=f"retry_{uuid.uuid4().hex}"
-        )
+        profile = retry_public_job_analysis(self.session, version, correlation_id=str(uuid.uuid4()))
         self.session.commit()
 
         watch_matches = self.session.execute(
