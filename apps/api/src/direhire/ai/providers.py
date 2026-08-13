@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
@@ -89,19 +90,34 @@ class HttpxGeminiTransport:
         response_schema: dict[str, object],
         max_output_tokens: int,
     ) -> tuple[str, ProviderUsage]:
+        # gemini-3.6 supports responseJsonSchema with $defs; 3.5/lite models expect schema in prompt
+        use_schema_field = not (
+            model.startswith("gemini-3.5")
+            or model.startswith("gemini-3.1")
+            or model.startswith("gemini-2.5")
+        )
+        schema_str = json.dumps(response_schema)
+        schema_suffix = (
+            f"\n\nStrictly format your response as a valid JSON object conforming to "
+            f"this JSON Schema:\n{schema_str}"
+        )
+        effective_prompt = prompt if use_schema_field else f"{prompt}{schema_suffix}"
+        gen_config: dict[str, object] = {
+            "responseMimeType": "application/json",
+            "maxOutputTokens": max_output_tokens,
+            "temperature": 0.1,
+        }
+        if use_schema_field:
+            gen_config["responseJsonSchema"] = response_schema
+
         try:
             with httpx.Client(trust_env=False, timeout=60) as client:
                 response = client.post(
                     self.endpoint.format(model=model),
                     headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
                     json={
-                        "contents": [{"role": "user", "parts": [{"text": prompt}]}],
-                        "generationConfig": {
-                            "responseMimeType": "application/json",
-                            "responseJsonSchema": response_schema,
-                            "maxOutputTokens": max_output_tokens,
-                            "temperature": 0.1,
-                        },
+                        "contents": [{"role": "user", "parts": [{"text": effective_prompt}]}],
+                        "generationConfig": gen_config,
                     },
                 )
         except httpx.HTTPError as exc:
@@ -158,39 +174,51 @@ class GeminiPoolProvider:
         prompt: str,
         response_schema: dict[str, object],
         max_output_tokens: int,
+        fallback_models: tuple[str, ...] = ("gemini-3.5-flash", "gemini-3.5-flash-lite"),
     ) -> ProviderResponse:
+        models_to_try = [model] + [m for m in fallback_models if m != model]
         last_failure: ProviderFailure | None = None
-        for route_key in self._available_routes():
-            route = self._route(route_key)
-            route.total_requests += 1
-            route.updated_at = utcnow()
-            try:
-                text, usage = self.transport.generate(
-                    api_key=self.credentials[route_key].api_key,
-                    model=model,
-                    prompt=prompt,
-                    response_schema=response_schema,
-                    max_output_tokens=max_output_tokens,
+
+        for current_model in models_to_try:
+            routes_to_try = (
+                self._available_routes()
+                if current_model == model
+                else self._available_routes(allow_cooldown_fallback=True)
+            )
+            for route_key in routes_to_try:
+                route = self._route(route_key)
+                route.total_requests += 1
+                route.updated_at = utcnow()
+                try:
+                    text, usage = self.transport.generate(
+                        api_key=self.credentials[route_key].api_key,
+                        model=current_model,
+                        prompt=prompt,
+                        response_schema=response_schema,
+                        max_output_tokens=max_output_tokens,
+                    )
+                except ProviderFailure as exc:
+                    last_failure = exc
+                    route.consecutive_failures += 1
+                    route.last_error_code = exc.code
+                    route.health = "COOLDOWN" if exc.retryable else "DEGRADED"
+                    route.cooldown_until = utcnow() + timedelta(seconds=self.cooldown_seconds)
+                    continue
+                route.health = "HEALTHY"
+                route.cooldown_until = None
+                route.consecutive_failures = 0
+                route.last_error_code = None
+                route.total_tokens += usage.total_tokens
+                self.cursor = (self.required_routes.index(route_key) + 1) % len(
+                    self.required_routes
                 )
-            except ProviderFailure as exc:
-                last_failure = exc
-                route.consecutive_failures += 1
-                route.last_error_code = exc.code
-                route.health = "COOLDOWN" if exc.retryable else "DEGRADED"
-                route.cooldown_until = utcnow() + timedelta(seconds=self.cooldown_seconds)
-                continue
-            route.health = "HEALTHY"
-            route.cooldown_until = None
-            route.consecutive_failures = 0
-            route.last_error_code = None
-            route.total_tokens += usage.total_tokens
-            self.cursor = (self.required_routes.index(route_key) + 1) % len(self.required_routes)
-            return ProviderResponse(text, "GEMINI", route_key, model, usage)
+                return ProviderResponse(text, "GEMINI", route_key, current_model, usage)
+
         if last_failure is not None:
             raise last_failure
         raise ProviderFailure("AI_PUBLIC_ROUTE_UNAVAILABLE", retryable=True)
 
-    def _available_routes(self) -> list[str]:
+    def _available_routes(self, *, allow_cooldown_fallback: bool = False) -> list[str]:
         now = datetime.now(UTC)
         ordered = [
             self.required_routes[(self.cursor + offset) % len(self.required_routes)]
@@ -210,6 +238,8 @@ class GeminiPoolProvider:
                 route.health = "DEGRADED"
                 route.cooldown_until = None
             available.append(key)
+        if not available and allow_cooldown_fallback:
+            return [k for k in ordered if self._route(k).enabled]
         return available
 
     def _route(self, route_key: str) -> AiProviderRoute:
