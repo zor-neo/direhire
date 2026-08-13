@@ -13,17 +13,24 @@ export function ShellRouter({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const [session, setSession] = useState<ProductSession | null>(null);
   const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     if (publicPaths.has(pathname)) return;
 
     let active = true;
-    apiRequest<ProductSession>("/auth/session")
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 12_000);
+    apiRequest<ProductSession>("/auth/session", { signal: controller.signal })
       .then((value) => {
         if (active) setSession(value);
       })
       .catch((reason: unknown) => {
         if (!active) return;
+        if (reason instanceof DOMException && reason.name === "AbortError") {
+          setError("Session verification is taking longer than expected.");
+          return;
+        }
         if (reason instanceof ApiError && reason.code === "AUTHENTICATION_REQUIRED") {
           window.location.replace("/");
           return;
@@ -32,8 +39,10 @@ export function ShellRouter({ children }: { children: ReactNode }) {
       });
     return () => {
       active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
     };
-  }, [pathname]);
+  }, [pathname, attempt]);
 
   if (publicPaths.has(pathname)) {
     return <div className="public-layout">{children}</div>;
@@ -46,7 +55,15 @@ export function ShellRouter({ children }: { children: ReactNode }) {
         <h1>We could not verify your session</h1>
         <p>{error}</p>
         <div className="landing-actions">
-          <button className="button primary" onClick={() => window.location.reload()}>Try again</button>
+          <button
+            className="button primary"
+            onClick={() => {
+              setError("");
+              setAttempt((value) => value + 1);
+            }}
+          >
+            Try again
+          </button>
           <Link className="button" href="/">Return home</Link>
         </div>
       </main>

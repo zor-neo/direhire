@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 from urllib.parse import parse_qs, urlparse
 
 import httpx
@@ -24,7 +25,10 @@ def run(frontend_url: str, api_url: str) -> None:
         frontend = client.get(f"{frontend_url}/")
         require(frontend.status_code == 200, f"frontend returned {frontend.status_code}")
         require("text/html" in frontend.headers.get("content-type", ""), "frontend is not HTML")
-        require(api_origin in frontend.headers.get("content-security-policy", ""), "CSP blocks API")
+        csp = frontend.headers.get("content-security-policy", "")
+        require(api_origin in csp, "CSP blocks API")
+        has_inline_bootstrap = bool(re.search(r"<script(?:\s[^>]*)?>\s*[^<\s]", frontend.text))
+        require(not has_inline_bootstrap or "'unsafe-inline'" in csp, "CSP blocks hydration")
         print("PASS frontend and security headers")
 
         health = client.get(f"{api_url}/health")

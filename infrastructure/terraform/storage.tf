@@ -84,7 +84,9 @@ resource "aws_cloudfront_response_headers_policy" "security" {
   name = "direhire-${var.environment}-security"
   security_headers_config {
     content_security_policy {
-      content_security_policy = "default-src 'self'; connect-src 'self' https://${var.api_domain_name}; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
+      # Next.js static export emits inline bootstrap scripts for client hydration.
+      # Keep script origins restricted to this site while permitting those bootstraps.
+      content_security_policy = "default-src 'self'; script-src 'self' 'unsafe-inline'; connect-src 'self' https://${var.api_domain_name}; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'"
       override                = true
     }
     content_type_options { override = true }
