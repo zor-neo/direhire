@@ -1,7 +1,10 @@
+from __future__ import annotations
+
 import hashlib
 import re
 import uuid
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -9,7 +12,6 @@ from sqlalchemy.orm import Session
 from direhire.config import Settings
 from direhire.entitlements.service import BASE_CV_LIMIT, EntitlementService
 from direhire.errors import AppError, NotFoundError
-from direhire.files.extraction import CvTextExtractor
 from direhire.files.storage import PresignedUpload, PrivateObjectStorage
 from direhire.files.validation import (
     ALLOWED_UPLOAD_TYPES,
@@ -18,6 +20,9 @@ from direhire.files.validation import (
     validate_file_structure,
 )
 from direhire.models import BaseCv, OutboxEvent, PrivateFile, utcnow
+
+if TYPE_CHECKING:
+    from direhire.files.extraction import CvTextExtractor
 
 SAFE_FILENAME = re.compile(r"[^A-Za-z0-9._() -]+")
 

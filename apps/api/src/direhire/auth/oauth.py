@@ -2,6 +2,7 @@ import base64
 import hashlib
 import secrets
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Annotated, Literal, Protocol
 from urllib.parse import urlencode
 
@@ -11,6 +12,16 @@ from fastapi import Depends
 
 from direhire.config import Settings, get_settings
 from direhire.errors import AppError
+
+
+@lru_cache
+def _token_client() -> httpx.Client:
+    return httpx.Client(timeout=10.0)
+
+
+@lru_cache
+def _jwks_client(jwks_url: str) -> jwt.PyJWKClient:
+    return jwt.PyJWKClient(jwks_url)
 
 
 @dataclass(frozen=True, slots=True)
@@ -86,7 +97,7 @@ class CognitoOAuthClient:
     ) -> CognitoIdentity:
         domain, user_pool_id, client_id, redirect_uri = self._required_config()
         try:
-            response = httpx.post(
+            response = _token_client().post(
                 f"{domain.rstrip('/')}/oauth2/token",
                 data={
                     "grant_type": "authorization_code",
@@ -96,7 +107,6 @@ class CognitoOAuthClient:
                     "redirect_uri": redirect_uri,
                 },
                 headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=10.0,
             )
             response.raise_for_status()
             token_body = response.json()
@@ -113,7 +123,7 @@ class CognitoOAuthClient:
         issuer = f"https://cognito-idp.{user_pool_id.split('_', 1)[0]}.amazonaws.com/{user_pool_id}"
         jwks_url = f"{issuer}/.well-known/jwks.json"
         try:
-            signing_key = jwt.PyJWKClient(jwks_url).get_signing_key_from_jwt(id_token)
+            signing_key = _jwks_client(jwks_url).get_signing_key_from_jwt(id_token)
             claims = jwt.decode(
                 id_token,
                 signing_key.key,

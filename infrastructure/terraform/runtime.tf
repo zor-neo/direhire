@@ -178,7 +178,7 @@ resource "aws_lambda_function" "api" {
   image_uri     = var.runtime_image_uri
   role          = aws_iam_role.api.arn
   timeout       = 29
-  memory_size   = 1024
+  memory_size   = 1536
   architectures = ["x86_64"]
   image_config { command = ["direhire.main.handler"] }
   environment { variables = local.common_environment }

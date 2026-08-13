@@ -4,7 +4,7 @@ import hashlib
 import json
 import re
 import uuid
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 from pydantic import ValidationError
 from sqlalchemy import func, select
@@ -13,7 +13,6 @@ from sqlalchemy.orm import Session
 from direhire.ai.private_contracts import TailoredCvResult
 from direhire.ai.private_service import PrivateAiRequestService
 from direhire.config import Settings
-from direhire.documents.ats_cv import AtsCvRenderer
 from direhire.errors import AppError, NotFoundError
 from direhire.files.storage import PrivateObjectStorage
 from direhire.models import (
@@ -24,6 +23,9 @@ from direhire.models import (
     utcnow,
 )
 from direhire.operations.controls import PlatformControlService
+
+if TYPE_CHECKING:
+    from direhire.documents.ats_cv import AtsCvRenderer
 
 DocumentFormat = Literal["DOCX", "PDF"]
 
@@ -195,7 +197,11 @@ class TailoredCvDocumentProcessor:
         self.session = session
         self.storage = storage
         self.settings = settings
-        self.renderer = renderer or AtsCvRenderer()
+        if renderer is None:
+            from direhire.documents.ats_cv import AtsCvRenderer
+
+            renderer = AtsCvRenderer()
+        self.renderer = renderer
 
     def process(self, document_id: str) -> TailoredCvDocument:
         document = self.session.get(TailoredCvDocument, document_id)
