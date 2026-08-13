@@ -659,6 +659,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/inbox/{user_job_id}/retry-analysis": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Retry Inbox Analysis */
+        post: operations["retry_inbox_analysis_api_v1_inbox__user_job_id__retry_analysis_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/inbox/{user_job_id}/status": {
         parameters: {
             query?: never;
@@ -3499,6 +3516,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["InboxItemRead"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    retry_inbox_analysis_api_v1_inbox__user_job_id__retry_analysis_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                user_job_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxItemRead"];
                 };
             };
             /** @description Validation Error */

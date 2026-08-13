@@ -53,3 +53,10 @@ def update_inbox_status(
     user_job_id: str, data: InboxStatusUpdate, user: User, session: DbSession
 ) -> object:
     return InboxService(session).set_status(user_job_id, str(user.id), data.status)
+
+
+@router.post("/{user_job_id}/retry-analysis", response_model=InboxItemRead)
+def retry_inbox_analysis(
+    user_job_id: str, user: User, session: DbSession
+) -> object:
+    return InboxService(session).retry_analysis(user_job_id, str(user.id))

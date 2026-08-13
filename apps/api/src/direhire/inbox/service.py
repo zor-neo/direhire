@@ -90,6 +90,38 @@ class InboxService:
         matched_watches = [{"id": w_id, "name": w_name} for _, w_id, w_name in watch_matches]
         return self._read(user_job, job, version, profile, matched_watches)
 
+    def retry_analysis(self, user_job_id: str, user_id: str) -> dict[str, object]:
+        import uuid
+        from direhire.ai.service import retry_public_job_analysis
+        from direhire.errors import AppError
+
+        row = self.session.execute(
+            select(UserJob, Job, JobVersion)
+            .join(Job, Job.id == UserJob.job_id)
+            .outerjoin(JobVersion, JobVersion.job_id == Job.id)
+            .where(UserJob.id == user_job_id, UserJob.user_id == user_id)
+            .order_by(JobVersion.captured_at.desc())
+            .limit(1)
+        ).one_or_none()
+        if row is None:
+            raise NotFoundError()
+        user_job, job, version = row
+        if version is None:
+            raise AppError("JOB_VERSION_NOT_FOUND", "No job content available to analyze.", 404)
+
+        profile = retry_public_job_analysis(
+            self.session, version, correlation_id=f"retry_{uuid.uuid4().hex}"
+        )
+        self.session.commit()
+
+        watch_matches = self.session.execute(
+            select(WatchMatch.job_id, JobWatch.id, JobWatch.name)
+            .join(JobWatch, JobWatch.id == WatchMatch.watch_id)
+            .where(JobWatch.owner_id == user_id, WatchMatch.job_id == job.id)
+        ).all()
+        matched_watches = [{"id": w_id, "name": w_name} for _, w_id, w_name in watch_matches]
+        return self._read(user_job, job, version, profile, matched_watches)
+
     @staticmethod
     def _read(
         user_job: UserJob,

@@ -4840,6 +4840,48 @@
         ]
       }
     },
+    "/api/v1/inbox/{user_job_id}/retry-analysis": {
+      "post": {
+        "operationId": "retry_inbox_analysis_api_v1_inbox__user_job_id__retry_analysis_post",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "user_job_id",
+            "required": true,
+            "schema": {
+              "title": "User Job Id",
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InboxItemRead"
+                }
+              }
+            },
+            "description": "Successful Response"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            },
+            "description": "Validation Error"
+          }
+        },
+        "summary": "Retry Inbox Analysis",
+        "tags": [
+          "Job Inbox"
+        ]
+      }
+    },
     "/api/v1/inbox/{user_job_id}/status": {
       "patch": {
         "operationId": "update_inbox_status_api_v1_inbox__user_job_id__status_patch",

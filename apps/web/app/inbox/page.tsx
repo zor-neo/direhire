@@ -75,6 +75,19 @@ export default function InboxPage() {
     }
   }
 
+  async function retryAnalysis(item: InboxItem) {
+    try {
+      setMessage(`Requesting analysis retry for ${item.title}…`);
+      const updated = await apiRequest<InboxItem>(`/inbox/${item.id}/retry-analysis`, {
+        method: "POST",
+      });
+      setItems((prev) => prev.map((it) => (it.id === item.id ? updated : it)));
+      setMessage(`Analysis queued for ${item.title}.`);
+    } catch (error) {
+      setMessage(displayError(error));
+    }
+  }
+
   async function track(item: InboxItem) {
     try {
       await apiRequest("/applications", {
@@ -172,9 +185,39 @@ export default function InboxPage() {
                     </span>
                   </div>
                   <h2>{item.title}</h2>
-                  <p className="supporting">
-                    Analysis: {item.analysis_status === "SUCCEEDED" ? "Ready" : item.analysis_status.toLowerCase()}
-                  </p>
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", margin: "0.25rem 0 0.5rem" }}>
+                    <p className="supporting" style={{ margin: 0 }}>
+                      Analysis:{" "}
+                      <span
+                        style={{
+                          fontWeight: 600,
+                          color:
+                            item.analysis_status === "SUCCEEDED"
+                              ? "var(--success)"
+                              : item.analysis_status === "QUEUED" || item.analysis_status === "RUNNING"
+                              ? "var(--warning)"
+                              : "var(--danger)",
+                        }}
+                      >
+                        {item.analysis_status === "SUCCEEDED" ? "Ready" : item.analysis_status.toLowerCase()}
+                      </span>
+                    </p>
+                    {item.analysis_status !== "SUCCEEDED" && (
+                      <button
+                        type="button"
+                        className="button secondary"
+                        style={{
+                          fontSize: "0.75rem",
+                          padding: "0.15rem 0.5rem",
+                          borderRadius: "4px",
+                          lineHeight: 1.2,
+                        }}
+                        onClick={() => void retryAnalysis(item)}
+                      >
+                        ↻ Retry analysis
+                      </button>
+                    )}
+                  </div>
                   {item.source_url && (
                     <a
                       className="text-action source-link"
