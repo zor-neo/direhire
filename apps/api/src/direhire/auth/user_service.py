@@ -21,6 +21,7 @@ class UserService:
             self.session.add(user)
         else:
             user.email = identity.email
-            user.mfa_enabled = identity.mfa_enabled
+            if identity.mfa_enabled:
+                user.mfa_enabled = True
         self.session.flush()
         return user

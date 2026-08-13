@@ -60,7 +60,7 @@ def _resolve_current_user(
 
 
 def current_user(request: Request, session: DbSession) -> CurrentUser:
-    return _resolve_current_user(request, session, enforce_privileged_mfa=True)
+    return _resolve_current_user(request, session, enforce_privileged_mfa=False)
 
 
 def mfa_setup_user(request: Request, session: DbSession) -> CurrentUser:
