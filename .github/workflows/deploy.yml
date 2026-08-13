@@ -85,8 +85,15 @@ jobs:
           TF_VAR_private_subnet_ids: ${{ vars.PRIVATE_SUBNET_IDS_JSON }}
           TF_VAR_browser_security_group_ids: ${{ vars.WORKER_SECURITY_GROUP_IDS_JSON }}
           TF_VAR_budget_alert_emails: ${{ vars.BUDGET_ALERT_EMAILS_JSON }}
+          TF_VAR_monthly_budget_usd: ${{ vars.MONTHLY_BUDGET_USD }}
+          TF_VAR_usajobs_enabled: ${{ vars.USAJOBS_ENABLED }}
+          TERRAFORM_BACKEND_CONFIG: ${{ secrets.TERRAFORM_BACKEND_CONFIG }}
         run: |
-          terraform init -backend-config="${{ secrets.TERRAFORM_BACKEND_CONFIG }}"
+          backend_config="$RUNNER_TEMP/direhire-backend.hcl"
+          umask 077
+          printf '%s' "$TERRAFORM_BACKEND_CONFIG" > "$backend_config"
+          trap 'rm -f "$backend_config"' EXIT
+          terraform init -backend-config="$backend_config"
           terraform plan -out=release.tfplan
       - name: Run controlled migrations
         if: inputs.apply
