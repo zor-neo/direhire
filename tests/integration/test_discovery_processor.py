@@ -108,6 +108,61 @@ def test_remotive_platform_discovers_matches_with_attributed_source_link(
         assert version.source_url.startswith("https://remotive.com/remote-jobs/")
 
 
+def test_workable_careers_url_resolves_and_discovers_full_description(
+    session_factory: sessionmaker[Session],
+) -> None:
+    fixture = Path("tests/fixtures/launch_adapters/workable.json").read_text(encoding="utf-8")
+    captured_source: object | None = None
+
+    def provide_content(source: object, request: SearchRequest | None) -> str:
+        nonlocal captured_source
+        assert request is None
+        captured_source = source
+        return fixture
+
+    with session_factory() as database:
+        database.add(
+            User(
+                id=str(USER_A),
+                cognito_subject="synthetic-workable-user",
+                email="workable@example.invalid",
+            )
+        )
+        database.commit()
+        watch = WatchService(database).create(
+            str(USER_A),
+            WatchCreate(
+                name="Cambodia reliability",
+                target_terms=["Python"],
+                required_terms=["PostgreSQL"],
+                sources=[
+                    {
+                        "source_kind": "CUSTOM_URL",
+                        "adapter_key": "generic_public",
+                        "url": "https://apply.workable.com/northstar/",
+                    }
+                ],
+            ),
+        )
+        source = watch.sources[0]
+        assert source.adapter_key == "workable"
+        assert source.url == (
+            "https://apply.workable.com/api/v1/widget/accounts/northstar?details=true"
+        )
+        WatchService(database).activate(watch.id, str(USER_A), "FREE")
+        run = WatchService(database).request_manual_run(watch.id, str(USER_A), "FREE")
+
+        completed = DiscoveryProcessor(database, provide_content).process(run.id)
+
+        assert captured_source is not None
+        assert completed.status == "SUCCEEDED"
+        assert completed.discovered_count == 1
+        assert completed.matched_count == 1
+        version = database.scalar(select(JobVersion))
+        assert version is not None
+        assert version.source_url == "https://apply.workable.com/j/SYNTHETIC-SRE-01"
+
+
 def test_discovery_creates_canonical_job_and_preserves_partial_success(
     session_factory: sessionmaker[Session],
 ) -> None:

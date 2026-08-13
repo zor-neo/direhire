@@ -5,6 +5,7 @@ const PATTERNS: Array<[string, string, RegExp]> = [
   ["recruitee", "Recruitee", /\.recruitee\.com\//i],
   ["personio", "Personio", /\.jobs\.personio\.de\//i],
   ["pinpoint", "Pinpoint", /\.pinpointhq\.com\//i],
+  ["workable", "Workable", /apply\.workable\.com\/(?!j\/)/i],
 ];
 
 export function detectAdapter(url: string): { key: string; label: string } | null {

@@ -14,6 +14,16 @@ def test_detects_and_transforms_supported_careers_urls() -> None:
         "recruitee",
         "https://fictional.recruitee.com/api/offers",
     )
+    assert resolve_custom_source("https://apply.workable.com/fictional/") == (
+        "workable",
+        "https://apply.workable.com/api/v1/widget/accounts/fictional?details=true",
+    )
+    assert resolve_custom_source(
+        "https://apply.workable.com/api/v1/widget/accounts/fictional"
+    ) == (
+        "workable",
+        "https://apply.workable.com/api/v1/widget/accounts/fictional?details=true",
+    )
 
 
 def test_unknown_public_url_uses_generic_adapter() -> None:

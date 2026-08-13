@@ -32,6 +32,11 @@ def resolve_custom_source(raw_url: str, adapter_hint: str | None = None) -> tupl
         return "personio", f"{parsed.scheme}://{parsed.netloc}/xml"
     if host.endswith(".pinpointhq.com"):
         return "pinpoint", f"{parsed.scheme}://{parsed.netloc}/jobs.rss"
+    if host == "apply.workable.com":
+        if len(parts) >= 5 and parts[:4] == ["api", "v1", "widget", "accounts"]:
+            return "workable", f"https://apply.workable.com/api/v1/widget/accounts/{parts[4]}?details=true"
+        if parts and parts[0] not in {"api", "j"}:
+            return "workable", f"https://apply.workable.com/api/v1/widget/accounts/{parts[0]}?details=true"
     if host.endswith(".example.invalid") and adapter_hint:
         return adapter_hint, url
     return "generic_public", url

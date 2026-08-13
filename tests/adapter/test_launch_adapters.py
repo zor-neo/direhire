@@ -8,6 +8,7 @@ from direhire.sources.adapters.lever import LeverAdapter
 from direhire.sources.adapters.personio import PersonioAdapter
 from direhire.sources.adapters.pinpoint import PinpointAdapter
 from direhire.sources.adapters.recruitee import RecruiteeAdapter
+from direhire.sources.adapters.workable import WorkableAdapter
 
 CASES = [
     (
@@ -51,6 +52,13 @@ CASES = [
         "https://acme.pinpointhq.com/jobs.rss",
         "Frontend Engineer",
         "Manila, Philippines",
+    ),
+    (
+        WorkableAdapter(),
+        "workable.json",
+        "https://apply.workable.com/api/v1/widget/accounts/northstar?details=true",
+        "Site Reliability Engineer",
+        "Phnom Penh, Cambodia",
     ),
 ]
 

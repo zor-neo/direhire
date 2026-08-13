@@ -1,0 +1,29 @@
+{
+  "name": "Northstar Labs",
+  "description": "Synthetic careers board used only for parser tests.",
+  "jobs": [
+    {
+      "title": "Site Reliability Engineer",
+      "shortcode": "SYNTHETIC-SRE-01",
+      "employment_type": "Full-time",
+      "telecommuting": false,
+      "department": "Engineering",
+      "url": "https://apply.workable.com/j/SYNTHETIC-SRE-01",
+      "shortlink": "https://apply.workable.com/j/SYNTHETIC-SRE-01",
+      "application_url": "https://apply.workable.com/j/SYNTHETIC-SRE-01/apply",
+      "published_on": "2026-08-08",
+      "created_at": "2026-08-08",
+      "country": "Cambodia",
+      "city": "Phnom Penh",
+      "locations": [
+        {
+          "country": "Cambodia",
+          "countryCode": "KH",
+          "city": "Phnom Penh",
+          "hidden": false
+        }
+      ],
+      "description": "<p>Operate Python services on AWS and improve PostgreSQL reliability.</p>"
+    }
+  ]
+}
