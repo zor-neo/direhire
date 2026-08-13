@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
@@ -10,6 +11,8 @@ from sqlalchemy.orm import Session
 
 from direhire.errors import AppError
 from direhire.models import AiProviderRoute, utcnow
+
+logger = logging.getLogger("direhire.ai.providers")
 
 
 @dataclass(frozen=True, slots=True)
@@ -96,6 +99,8 @@ class HttpxGeminiTransport:
             or model.startswith("gemini-3.1")
             or model.startswith("gemini-2.5")
         )
+        # lite models (e.g. gemini-3.5-flash-lite) do not support thinkingConfig
+        supports_thinking = "lite" not in model.lower()
         schema_str = json.dumps(response_schema)
         schema_suffix = (
             f"\n\nStrictly format your response as a valid JSON object conforming to "
@@ -106,8 +111,9 @@ class HttpxGeminiTransport:
             "responseMimeType": "application/json",
             "maxOutputTokens": max(max_output_tokens, 8192),
             "temperature": 0.1,
-            "thinkingConfig": {"thinkingBudget": 0},
         }
+        if supports_thinking:
+            gen_config["thinkingConfig"] = {"thinkingBudget": 0}
         if use_schema_field:
             gen_config["responseJsonSchema"] = response_schema
 
@@ -121,6 +127,18 @@ class HttpxGeminiTransport:
                         "generationConfig": gen_config,
                     },
                 )
+                # If thinkingConfig was included and returned 400 Bad Request, retry without it
+                if response.status_code == 400 and "thinkingConfig" in gen_config:
+                    gen_config_fallback = dict(gen_config)
+                    gen_config_fallback.pop("thinkingConfig", None)
+                    response = client.post(
+                        self.endpoint.format(model=model),
+                        headers={"x-goog-api-key": api_key, "Content-Type": "application/json"},
+                        json={
+                            "contents": [{"role": "user", "parts": [{"text": effective_prompt}]}],
+                            "generationConfig": gen_config_fallback,
+                        },
+                    )
         except httpx.HTTPError as exc:
             raise ProviderFailure("AI_PROVIDER_UNAVAILABLE", retryable=True) from exc
         if response.status_code == 429:
@@ -128,7 +146,29 @@ class HttpxGeminiTransport:
         if response.status_code >= 500:
             raise ProviderFailure("AI_PROVIDER_UNAVAILABLE", retryable=True)
         if response.status_code >= 400:
-            raise ProviderFailure("AI_PROVIDER_REJECTED", retryable=False)
+            # Log safe diagnostic info (no prompt content, no API key)
+            try:
+                error_body = response.json()
+                error_code = error_body.get("error", {}).get("code", "")
+                error_status = error_body.get("error", {}).get("status", "")
+                error_message = str(error_body.get("error", {}).get("message", ""))[:200]
+            except Exception:
+                error_code = ""
+                error_status = ""
+                error_message = response.text[:200] if response.text else ""
+            logger.warning(
+                "Gemini API rejected request status=%d model=%s error_code=%s"
+                " error_status=%s message=%s",
+                response.status_code,
+                model,
+                error_code,
+                error_status,
+                error_message,
+            )
+            # 400 = bad request (model-specific config mismatch, retryable with fallback model)
+            # 403 = forbidden (API key issue, non-retryable)
+            retryable = response.status_code != 403
+            raise ProviderFailure("AI_PROVIDER_REJECTED", retryable=retryable)
         try:
             body = response.json()
             text = body["candidates"][0]["content"]["parts"][0]["text"]
