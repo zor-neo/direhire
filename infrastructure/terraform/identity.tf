@@ -87,5 +87,43 @@ resource "aws_cognito_managed_login_branding" "web" {
   depends_on = [aws_cognito_user_pool_domain.hosted]
 }
 
+resource "aws_sesv2_email_identity" "auth" {
+  email_identity = var.auth_email_domain_name
+}
+
+resource "aws_sesv2_email_identity_mail_from_attributes" "auth" {
+  email_identity         = aws_sesv2_email_identity.auth.email_identity
+  mail_from_domain       = "mail.${var.auth_email_domain_name}"
+  behavior_on_mx_failure = "REJECT_MESSAGE"
+}
+
+output "auth_email_identity_arn" { value = aws_sesv2_email_identity.auth.arn }
+output "auth_email_dns_records" {
+  value = concat(
+    [for token in aws_sesv2_email_identity.auth.dkim_signing_attributes[0].tokens : {
+      type  = "CNAME"
+      name  = "${token}._domainkey.${var.auth_email_domain_name}"
+      value = "${token}.dkim.amazonses.com"
+    }],
+    [
+      {
+        type  = "MX"
+        name  = "mail.${var.auth_email_domain_name}"
+        value = "10 feedback-smtp.${var.aws_region}.amazonses.com"
+      },
+      {
+        type  = "TXT"
+        name  = "mail.${var.auth_email_domain_name}"
+        value = "v=spf1 include:amazonses.com -all"
+      },
+      {
+        type  = "TXT"
+        name  = "_dmarc.${var.auth_email_domain_name}"
+        value = "v=DMARC1; p=none; adkim=s; aspf=s"
+      }
+    ]
+  )
+}
+
 output "cognito_user_pool_id" { value = aws_cognito_user_pool.users.id }
 output "cognito_client_id" { value = aws_cognito_user_pool_client.web.id }

@@ -117,6 +117,12 @@ variable "cognito_ses_email_configuration" {
   nullable = true
 }
 
+variable "auth_email_domain_name" {
+  description = "Dedicated SES identity used for Cognito transactional email after DNS verification."
+  type        = string
+  default     = "auth.zorneo.dev"
+}
+
 variable "monthly_budget_usd" {
   description = "Monthly AWS cost budget for the P0 environment."
   type        = number

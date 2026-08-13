@@ -1,0 +1,63 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ECR",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:GetAuthorizationToken",
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:GetDownloadUrlForLayer",
+        "ecr:BatchGetImage",
+        "ecr:PutImage",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:DescribeImages",
+        "ecr:DescribeRepositories"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "TerraformState",
+      "Effect": "Allow",
+      "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject", "s3:ListBucket"],
+      "Resource": [
+        "arn:aws:s3:::direhire-tfstate-685134815483",
+        "arn:aws:s3:::direhire-tfstate-685134815483/*"
+      ]
+    },
+    {
+      "Sid": "TerraformManage",
+      "Effect": "Allow",
+      "Action": [
+        "lambda:*",
+        "apigateway:*",
+        "execute-api:*",
+        "s3:*",
+        "sqs:*",
+        "iam:*",
+        "cognito-idp:*",
+        "cloudfront:*",
+        "cloudwatch:*",
+        "logs:*",
+        "ecr:*",
+        "ecs:*",
+        "ssm:GetParameter",
+        "ssm:DescribeParameters",
+        "scheduler:*",
+        "budgets:*",
+        "tag:*",
+        "events:*",
+        "ses:CreateEmailIdentity",
+        "ses:DeleteEmailIdentity",
+        "ses:GetEmailIdentity",
+        "ses:ListTagsForResource",
+        "ses:PutEmailIdentityMailFromAttributes",
+        "ses:TagResource",
+        "ses:UntagResource"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

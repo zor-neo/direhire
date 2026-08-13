@@ -13,4 +13,16 @@ Before switching production to SES:
 5. set `cognito_ses_email_configuration` to the verified identity ARN and branded From address;
 6. review and apply Terraform, then repeat the delivery checks.
 
+Terraform creates the `auth.zorneo.dev` identity and exposes `auth_email_dns_records`.
+Publish those records as DNS-only records in Cloudflare. Do not proxy DKIM CNAME records.
+After SES reports `SUCCESS` and `VerifiedForSendingStatus=true`, set:
+
+```hcl
+cognito_ses_email_configuration = {
+  source_arn             = "<auth_email_identity_arn output>"
+  from_email_address     = "DireHire <no-reply@auth.zorneo.dev>"
+  reply_to_email_address = "support@zorneo.dev"
+}
+```
+
 Do not configure an unverified identity or silently fall back to a different sending domain.
