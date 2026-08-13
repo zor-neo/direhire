@@ -104,8 +104,9 @@ class HttpxGeminiTransport:
         effective_prompt = prompt if use_schema_field else f"{prompt}{schema_suffix}"
         gen_config: dict[str, object] = {
             "responseMimeType": "application/json",
-            "maxOutputTokens": max_output_tokens,
+            "maxOutputTokens": max(max_output_tokens, 8192),
             "temperature": 0.1,
+            "thinkingConfig": {"thinkingBudget": 0},
         }
         if use_schema_field:
             gen_config["responseJsonSchema"] = response_schema
