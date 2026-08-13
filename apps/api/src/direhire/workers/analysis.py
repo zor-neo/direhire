@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Callable
 from typing import Protocol
 
@@ -7,6 +8,9 @@ from direhire.config import Settings, get_settings
 from direhire.db import SessionLocal
 from direhire.errors import AppError
 from direhire.events.outbox import EventEnvelope
+
+logger = logging.getLogger("direhire.workers.analysis")
+logger.setLevel(logging.INFO)
 
 MessageProcessor = Callable[[EventEnvelope], None]
 
@@ -35,12 +39,25 @@ def handle_sqs_batch(event: dict[str, object], processor: MessageProcessor) -> d
         if not isinstance(record, dict):
             continue
         message_id = str(record.get("messageId", ""))
+        event_id = "unknown"
         try:
             envelope = EventEnvelope.model_validate_json(str(record.get("body", "")))
+            event_id = envelope.event_id
             if envelope.event_type != "job.analysis.requested" or envelope.schema_version != 1:
                 raise ValueError("unsupported event contract")
+            logger.info(
+                "Processing analysis event id=%s profile_id=%s",
+                event_id,
+                envelope.payload.get("profile_id"),
+            )
             processor(envelope)
+            logger.info("Completed analysis event id=%s", event_id)
         except Exception:
+            logger.exception(
+                "Failed processing analysis SQS record message_id=%s event_id=%s",
+                message_id,
+                event_id,
+            )
             if message_id:
                 failures.append({"itemIdentifier": message_id})
     return {"batchItemFailures": failures}
