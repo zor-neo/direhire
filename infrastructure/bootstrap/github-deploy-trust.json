@@ -1,0 +1,23 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Principal": {
+        "Federated": "arn:aws:iam::685134815483:oidc-provider/token.actions.githubusercontent.com"
+      },
+      "Action": "sts:AssumeRoleWithWebIdentity",
+      "Condition": {
+        "StringEquals": {
+          "token.actions.githubusercontent.com:aud": "sts.amazonaws.com",
+          "token.actions.githubusercontent.com:sub": "repo:zor-neo@240544755/direhire@1331594279:environment:production",
+          "token.actions.githubusercontent.com:repository_id": "1331594279",
+          "token.actions.githubusercontent.com:repository_owner_id": "240544755",
+          "token.actions.githubusercontent.com:ref": "refs/heads/main",
+          "token.actions.githubusercontent.com:environment": "production",
+          "token.actions.githubusercontent.com:workflow": "Deploy production"
+        }
+      }
+    }
+  ]
+}

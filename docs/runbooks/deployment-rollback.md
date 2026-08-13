@@ -2,6 +2,8 @@
 
 Production deployment is manual, serialized, and protected by the GitHub `production` environment. GitHub authenticates to AWS with OIDC; no long-lived AWS keys are used. The deploy role is bootstrapped separately with the least privileges needed for ECR, S3 frontend publication, CloudFront invalidation, Terraform-managed services, and `iam:PassRole` only for `direhire-prod-*` runtime roles.
 
+The role trust policy is versioned at `infrastructure/bootstrap/github-deploy-trust.json`. GitHub repositories created after July 15, 2026 use immutable owner/repository IDs in the OIDC subject. Keep the subject, repository IDs, `main` ref, `production` environment, and workflow-name conditions exact; do not replace them with an organization-wide wildcard.
+
 ## Deploy
 
 1. Merge a commit whose CI backend, frontend, contract, and Terraform gates pass.
