@@ -132,9 +132,7 @@ def external_searches_for(watch: JobWatch) -> list[ExternalSearch]:
     return searches
 
 
-def _seek_searches(
-    keywords: str, location: str, regions: set[str]
-) -> list[ExternalSearch]:
+def _seek_searches(keywords: str, location: str, regions: set[str]) -> list[ExternalSearch]:
     endpoints = {
         "MY": ("jobstreet-my", "JobStreet Malaysia", "https://my.jobstreet.com/jobs"),
         "SG": ("jobstreet-sg", "JobStreet Singapore", "https://sg.jobstreet.com/jobs"),

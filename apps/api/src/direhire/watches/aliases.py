@@ -1,6 +1,5 @@
 """Reviewed mechanical aliases used by deterministic Watch matching."""
 
-
 ALIAS_MAP: dict[str, tuple[str, ...]] = {
     "amazon web services": ("aws",),
     "angular": ("angularjs", "angular.js"),

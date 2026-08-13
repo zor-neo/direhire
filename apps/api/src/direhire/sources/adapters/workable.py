@@ -76,9 +76,7 @@ def _location(item: dict[str, object]) -> str:
             if not isinstance(value, dict):
                 continue
             label = ", ".join(
-                part
-                for part in (text(value.get("city")), text(value.get("country")))
-                if part
+                part for part in (text(value.get("city")), text(value.get("country"))) if part
             )
             if label and label not in labels:
                 labels.append(label)

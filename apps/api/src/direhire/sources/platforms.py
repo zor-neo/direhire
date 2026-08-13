@@ -215,9 +215,7 @@ def platforms_for_regions(region_codes: list[str]) -> list[SearchPlatform]:
     ]
 
 
-def platform_is_available(
-    platform: SearchPlatform, settings: Settings | None = None
-) -> bool:
+def platform_is_available(platform: SearchPlatform, settings: Settings | None = None) -> bool:
     if platform.availability != "AVAILABLE":
         return False
     if platform.key == "usajobs":
