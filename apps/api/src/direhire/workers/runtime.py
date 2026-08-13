@@ -10,6 +10,7 @@ from direhire.workers.file_scan import process_file_scan
 from direhire.workers.notifications import process_notification
 from direhire.workers.privacy import process_privacy_workflow
 from direhire.workers.private_ai import process_private_ai
+from direhire.workers.watch_expansion import process_watch_expansion
 
 MessageProcessor = Callable[[EventEnvelope], None]
 
@@ -18,6 +19,7 @@ PROCESSORS: dict[str, tuple[str, MessageProcessor]] = {
     "analyze.job.requested": ("source-discovery", process_analyze_job),
     "job.analysis.requested": ("ai-analysis", process_analysis),
     "private.ai.requested": ("interactive-ai", process_private_ai),
+    "watch.query-expansion.requested": ("interactive-ai", process_watch_expansion),
     "notification.digest.requested": ("notification", process_notification),
     "private.document.requested": ("documents", process_document),
     "file.scan.requested": ("documents", process_file_scan),

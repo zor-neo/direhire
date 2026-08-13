@@ -1,53 +1,144 @@
 "use client";
 
-import { FormEvent, useCallback, useState } from "react";
+import { FormEvent, useCallback, useEffect, useState } from "react";
 import type { components } from "../../../../contracts/generated/api-types";
 
 import { PageHeader, StatusMessage } from "../components/app-shell";
+import { PlatformCard, type SearchPlatform } from "../components/platform-cards";
 import { apiRequest, commaList, displayError } from "../lib/api";
+import { detectAdapter } from "../lib/detect-adapter";
 import { useInitialLoad } from "../lib/use-initial-load";
 
 type Watch = components["schemas"]["WatchRead"];
 
-const adapters = [
-  ["greenhouse", "Greenhouse"], ["lever", "Lever"], ["ashby", "Ashby"],
-  ["recruitee", "Recruitee"], ["personio", "Personio"], ["pinpoint", "Pinpoint"],
-  ["generic_public", "Other public careers page"],
+const experienceLevels = [
+  ["ANY", "Any experience"],
+  ["ENTRY", "Entry level"],
+  ["JUNIOR", "Junior"],
+  ["MID", "Mid-level"],
+  ["SENIOR", "Senior"],
+  ["LEAD", "Lead"],
+  ["EXECUTIVE", "Executive"],
+];
+
+const workArrangements = [
+  ["ON_SITE", "On-site"],
+  ["HYBRID", "Hybrid"],
+  ["REMOTE", "Remote"],
+];
+
+const employmentTypes = [
+  ["FULL_TIME", "Full-time"],
+  ["PART_TIME", "Part-time"],
+  ["CONTRACT", "Contract"],
+  ["TEMPORARY", "Temporary"],
+  ["INTERNSHIP", "Internship"],
+  ["FREELANCE", "Freelance / project"],
 ];
 
 export default function WatchesPage() {
   const [watches, setWatches] = useState<Watch[]>([]);
+  const [platforms, setPlatforms] = useState<SearchPlatform[]>([]);
+  const [recommendedKeys, setRecommendedKeys] = useState<Set<string>>(new Set());
+  const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
+  const [customUrls, setCustomUrls] = useState([""]);
+  const [role, setRole] = useState("");
+  const [location, setLocation] = useState("");
   const [message, setMessage] = useState("Loading Watches…");
   const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
-    try { setWatches(await apiRequest<Watch[]>("/watches")); setMessage(""); }
-    catch (error) { setMessage(displayError(error)); }
+    try {
+      const [watchValues, platformValues] = await Promise.all([
+        apiRequest<Watch[]>("/watches"),
+        apiRequest<SearchPlatform[]>("/watches/platforms"),
+      ]);
+      setWatches(watchValues);
+      setPlatforms(platformValues);
+      setRecommendedKeys(new Set(platformValues.map((platform) => platform.key)));
+      setMessage("");
+    } catch (error) {
+      setMessage(displayError(error));
+    }
   }, []);
   useInitialLoad(load);
+
+  useEffect(() => {
+    const firstLocation = commaList(location)[0];
+    if (!firstLocation) return;
+    const timer = window.setTimeout(async () => {
+      try {
+        const values = await apiRequest<SearchPlatform[]>(
+          `/watches/platforms?location=${encodeURIComponent(firstLocation)}`,
+        );
+        setRecommendedKeys(new Set(values.map((platform) => platform.key)));
+      } catch {
+        setRecommendedKeys(new Set());
+      }
+    }, 350);
+    return () => window.clearTimeout(timer);
+  }, [location, platforms]);
+
+  function togglePlatform(key: string) {
+    setSelectedPlatforms((current) => {
+      if (current.includes(key)) return current.filter((value) => value !== key);
+      return current.length < 3 ? [...current, key] : current;
+    });
+  }
+
+  function updateCustomUrl(index: number, value: string) {
+    setCustomUrls((current) => current.map((url, item) => (item === index ? value : url)));
+  }
 
   async function create(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = event.currentTarget;
     const data = new FormData(form);
-    const sourceUrl = String(data.get("source_url") ?? "").trim();
+    const targets = commaList(role);
+    const locations = commaList(location);
+    const sources = [
+      ...selectedPlatforms.map((platformKey) => ({
+        source_kind: "PLATFORM",
+        platform_key: platformKey,
+      })),
+      ...customUrls
+        .map((url) => url.trim())
+        .filter(Boolean)
+        .map((url) => ({
+          source_kind: "CUSTOM_URL",
+          adapter_key: detectAdapter(url)?.key ?? "generic_public",
+          url,
+        })),
+    ];
+    const age = String(data.get("age") ?? "30");
     setBusy(true);
     try {
       const created = await apiRequest<Watch>("/watches", {
         method: "POST",
         body: JSON.stringify({
-          name: data.get("name"), target_terms: commaList(data.get("targets")),
-          required_terms: commaList(data.get("required")), excluded_terms: commaList(data.get("excluded")),
-          locations: commaList(data.get("locations")), experience_level: data.get("experience") || "ANY",
-          posting_age_days: Number(data.get("age")),
-          sources: sourceUrl ? [{ source_kind: "CUSTOM_URL", adapter_key: data.get("adapter"), url: sourceUrl }] : [],
+          target_terms: targets,
+          required_terms: commaList(data.get("required")),
+          excluded_terms: commaList(data.get("excluded")),
+          locations,
+          experience_level: data.get("experience") || "ANY",
+          posting_age_days: age === "ANY" ? null : Number(age),
+          work_arrangements: data.getAll("work_arrangements"),
+          employment_types: data.getAll("employment_types"),
+          sources,
         }),
       });
       setWatches((current) => [...current, created]);
-      setMessage(`${created.name} was saved as a draft. Activate it when ready.`);
+      setMessage(`${created.name} was created. Activate it when ready to start discovery.`);
       form.reset();
-    } catch (error) { setMessage(displayError(error)); }
-    finally { setBusy(false); }
+      setRole("");
+      setLocation("");
+      setSelectedPlatforms([]);
+      setCustomUrls([""]);
+    } catch (error) {
+      setMessage(displayError(error));
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function action(watch: Watch, name: "activate" | "pause" | "archive" | "runs") {
@@ -55,36 +146,138 @@ export default function WatchesPage() {
     try {
       if (name === "runs") {
         await apiRequest(`/watches/${watch.id}/runs`, { method: "POST" });
-        setMessage(`${watch.name} is queued. Successful sources will remain even if one fails.`);
+        setMessage(`${watch.name} is queued. Successful sources remain even if one fails.`);
       } else {
         await apiRequest(`/watches/${watch.id}/${name}`, { method: "POST" });
-        await load(); setMessage(`${watch.name} was updated.`);
+        await load();
+        setMessage(`${watch.name} was updated.`);
       }
-    } catch (error) { setMessage(displayError(error)); }
-    finally { setBusy(false); }
+    } catch (error) {
+      setMessage(displayError(error));
+    } finally {
+      setBusy(false);
+    }
   }
 
-  return <>
-    <PageHeader eyebrow="Discovery" title="Job Watches" />
-    <StatusMessage>{message}</StatusMessage>
-    <div className="split-layout">
-      <section className="surface" aria-labelledby="new-watch"><h2 id="new-watch">Create a Watch</h2>
-        <p className="supporting">Target is broad, Required is mandatory, and Exclude filters a result. No Profile or CV is needed.</p>
-        <form onSubmit={create}>
-          <label htmlFor="name">Watch name</label><input id="name" name="name" required maxLength={120} />
-          <label htmlFor="targets">Target terms <span>(comma-separated)</span></label><input id="targets" name="targets" required placeholder="Backend engineer, Python" />
-          <label htmlFor="required">Required terms</label><input id="required" name="required" placeholder="PostgreSQL" />
-          <label htmlFor="excluded">Exclude terms</label><input id="excluded" name="excluded" placeholder="Senior director" />
-          <label htmlFor="locations">Locations</label><input id="locations" name="locations" placeholder="Bangkok, Remote APAC" />
-          <div className="field-row"><label>Experience target<input name="experience" placeholder="Mid-level" /></label><label>Posted within<select name="age" defaultValue="30"><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option></select></label></div>
-          <label htmlFor="adapter">Public source</label><select id="adapter" name="adapter">{adapters.map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select>
-          <label htmlFor="source-url">Documented feed or careers URL</label><input id="source-url" name="source_url" type="url" placeholder="https://…" />
-          <button className="button primary" disabled={busy}>Save draft</button>
-        </form>
-      </section>
-      <section className="surface" aria-labelledby="your-watches"><h2 id="your-watches">Your Watches</h2>
-        {watches.length === 0 ? <div className="empty"><h3>No Watches yet</h3><p>Create a focused Watch to begin discovery.</p></div> : <ul className="item-list">{watches.map((watch) => <li key={watch.id}><div><span className={`badge ${watch.status.toLowerCase()}`}>{watch.status}</span><h3>{watch.name}</h3><p>{watch.target_terms.join(" · ")}</p></div><div className="row-actions">{watch.status === "DRAFT" && <button onClick={() => action(watch, "activate")} disabled={busy}>Activate</button>}{watch.status === "ACTIVE" && <><button onClick={() => action(watch, "runs")} disabled={busy}>Run now</button><button onClick={() => action(watch, "pause")} disabled={busy}>Pause</button></>}{watch.status === "PAUSED" && <button onClick={() => action(watch, "activate")} disabled={busy}>Resume</button>}<button className="quiet" onClick={() => action(watch, "archive")} disabled={busy}>Archive</button></div></li>)}</ul>}
-      </section>
-    </div>
-  </>;
+  const autoName = [commaList(role)[0], commaList(location)[0]].filter(Boolean).join(" · ");
+  const hasLocation = Boolean(commaList(location)[0]);
+  const recommended = platforms.filter(
+    (platform) => !hasLocation || recommendedKeys.has(platform.key),
+  );
+  const alsoAvailable = hasLocation
+    ? platforms.filter((platform) => !recommendedKeys.has(platform.key))
+    : [];
+
+  return (
+    <>
+      <PageHeader eyebrow="Discovery" title="Job Watches" />
+      <StatusMessage>{message}</StatusMessage>
+      <div className="watch-layout">
+        <section className="surface watch-builder" aria-labelledby="new-watch">
+          <div className="section-heading">
+            <div>
+              <h2 id="new-watch">Create a Watch</h2>
+              <p>Describe the work you want. DireHire handles the source details.</p>
+            </div>
+          </div>
+          <form onSubmit={create}>
+            <fieldset className="watch-section">
+              <legend>What are you looking for?</legend>
+              <label htmlFor="targets">
+                What role?
+                <input
+                  id="targets"
+                  value={role}
+                  onChange={(event) => setRole(event.target.value)}
+                  required
+                  placeholder="IT support, Backend engineer"
+                  aria-describedby="targets-hint"
+                />
+              </label>
+              <p className="hint" id="targets-hint">Separate alternative roles with commas.</p>
+              <div className="field-row">
+                <label htmlFor="locations">
+                  Where?
+                  <input
+                    id="locations"
+                    value={location}
+                    onChange={(event) => setLocation(event.target.value)}
+                    placeholder="Bangkok, Remote APAC"
+                  />
+                </label>
+                <label htmlFor="experience">
+                  Experience level
+                  <select id="experience" name="experience" defaultValue="ANY">
+                    {experienceLevels.map(([value, label]) => (
+                      <option value={value} key={value}>{label}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              {autoName && <p className="auto-name">Watch name: <strong>{autoName}</strong></p>}
+
+              <details className="collapsible">
+                <summary>More options</summary>
+                <div className="collapsible-content">
+                  <label htmlFor="required">Required terms<input id="required" name="required" placeholder="PostgreSQL" /></label>
+                  <label htmlFor="excluded">Exclude terms<input id="excluded" name="excluded" placeholder="Director, unpaid" /></label>
+                  <div>
+                    <span className="field-label">Work arrangement</span>
+                    <div className="choice-grid">
+                      {workArrangements.map(([value, label]) => <label className="check" key={value}><input type="checkbox" name="work_arrangements" value={value} />{label}</label>)}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="field-label">Employment type</span>
+                    <div className="choice-grid">
+                      {employmentTypes.map(([value, label]) => <label className="check" key={value}><input type="checkbox" name="employment_types" value={value} />{label}</label>)}
+                    </div>
+                  </div>
+                  <label htmlFor="age">Posted within<select id="age" name="age" defaultValue="30"><option value="3">3 days</option><option value="7">7 days</option><option value="14">14 days</option><option value="30">30 days</option><option value="ANY">Any available</option></select></label>
+                </div>
+              </details>
+            </fieldset>
+
+            <fieldset className="watch-section">
+              <legend>Where should we search?</legend>
+              <p className="supporting">Choose up to three platforms. Availability is based on tested public access.</p>
+              {recommended.length > 0 && <>
+                <h3 className="platform-group-title">Recommended for this location</h3>
+                <div className="platform-grid">
+                  {recommended.map((platform) => <PlatformCard key={platform.key} platform={platform} selected={selectedPlatforms.includes(platform.key)} disabled={selectedPlatforms.length >= 3 && !selectedPlatforms.includes(platform.key)} onToggle={togglePlatform} />)}
+                </div>
+              </>}
+              {alsoAvailable.length > 0 && <>
+                <h3 className="platform-group-title">Also available</h3>
+                <div className="platform-grid">
+                  {alsoAvailable.map((platform) => <PlatformCard key={platform.key} platform={platform} selected={selectedPlatforms.includes(platform.key)} disabled={selectedPlatforms.length >= 3 && !selectedPlatforms.includes(platform.key)} onToggle={togglePlatform} />)}
+                </div>
+              </>}
+              {platforms.length === 0 && <p className="empty-inline">No tested search platform is available right now. You can still add company career pages below.</p>}
+              {selectedPlatforms.length > 0 && <div className="chip-row" aria-label="Selected platforms">{selectedPlatforms.map((key) => { const platform = platforms.find((item) => item.key === key); return <button type="button" className="meta-chip" key={key} onClick={() => togglePlatform(key)}>{platform?.name ?? key}<span aria-hidden="true">×</span></button>; })}</div>}
+            </fieldset>
+
+            <details className="collapsible watch-section">
+              <summary>Watch a specific company&apos;s career page</summary>
+              <div className="collapsible-content">
+                <p className="supporting">Optional. Add up to two public career-page URLs.</p>
+                {customUrls.map((url, index) => {
+                  const detected = detectAdapter(url);
+                  return <div className="url-input-group" key={index}><label htmlFor={`custom-url-${index}`}>Company career URL<input id={`custom-url-${index}`} type="url" value={url} onChange={(event) => updateCustomUrl(index, event.target.value)} placeholder="https://company.example/careers" /></label>{url && <span className={`detection-label ${detected ? "detected" : "generic"}`}>{detected ? `Detected: ${detected.label}` : "Public page detection"}</span>}{customUrls.length > 1 && <button type="button" className="quiet" onClick={() => setCustomUrls((current) => current.filter((_, item) => item !== index))}>Remove</button>}</div>;
+                })}
+                {customUrls.length < 2 && <button type="button" className="quiet add-url" onClick={() => setCustomUrls((current) => [...current, ""])}>+ Add another URL</button>}
+              </div>
+            </details>
+
+            <button className="button primary create-watch-button" disabled={busy || commaList(role).length === 0}>Create Watch</button>
+          </form>
+        </section>
+
+        <section className="surface" aria-labelledby="your-watches">
+          <h2 id="your-watches">Your Watches</h2>
+          {watches.length === 0 ? <div className="empty"><h3>No Watches yet</h3><p>Create a focused Watch to begin discovery.</p></div> : <ul className="item-list">{watches.map((watch) => <li key={watch.id}><div><span className={`badge ${watch.status.toLowerCase()}`}>{watch.status}</span><h3>{watch.name}</h3><p>{watch.target_terms.join(" · ")}</p></div><div className="row-actions">{watch.status === "DRAFT" && <button onClick={() => action(watch, "activate")} disabled={busy}>Activate</button>}{watch.status === "ACTIVE" && <><button onClick={() => action(watch, "runs")} disabled={busy}>Run now</button><button onClick={() => action(watch, "pause")} disabled={busy}>Pause</button></>}{watch.status === "PAUSED" && <button onClick={() => action(watch, "activate")} disabled={busy}>Resume</button>}<button className="quiet" onClick={() => action(watch, "archive")} disabled={busy}>Archive</button></div></li>)}</ul>}
+        </section>
+      </div>
+    </>
+  );
 }

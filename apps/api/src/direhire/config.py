@@ -83,6 +83,7 @@ class Settings(BaseSettings):
             "analyze.job.requested",
             "job.analysis.requested",
             "private.ai.requested",
+            "watch.query-expansion.requested",
             "notification.digest.requested",
             "private.document.requested",
             "file.scan.requested",

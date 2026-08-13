@@ -22,6 +22,8 @@ class SearchPlatform:
     adapter_key: str
     regions: tuple[str, ...]
     tier: str  # "A" = API/XHR, "B" = JSON-LD, "C" = browser scraping
+    search_capable: bool
+    availability: str
     logo_filename: str
     description: str = ""
 
@@ -34,6 +36,8 @@ SEARCH_PLATFORMS: dict[str, SearchPlatform] = {
         adapter_key="seek_search",
         regions=("MY", "SG", "ID", "PH"),
         tier="A",
+        search_capable=True,
+        availability="PAUSED",
         logo_filename="jobstreet.svg",
         description="Jobs across Malaysia, Singapore, Indonesia, Philippines",
     ),
@@ -43,6 +47,8 @@ SEARCH_PLATFORMS: dict[str, SearchPlatform] = {
         adapter_key="seek_search",
         regions=("TH", "HK"),
         tier="A",
+        search_capable=True,
+        availability="PAUSED",
         logo_filename="jobsdb.svg",
         description="Jobs across Thailand and Hong Kong",
     ),
@@ -52,6 +58,8 @@ SEARCH_PLATFORMS: dict[str, SearchPlatform] = {
         adapter_key="jobthai",
         regions=("TH",),
         tier="A",
+        search_capable=True,
+        availability="AVAILABLE",
         logo_filename="jobthai.svg",
         description="Thailand's leading job platform",
     ),
@@ -61,6 +69,8 @@ SEARCH_PLATFORMS: dict[str, SearchPlatform] = {
         adapter_key="glassdoor",
         regions=("US", "GB", "SG", "MY", "TH", "ID", "PH", "HK", "JP", "DE", "FR"),
         tier="B",
+        search_capable=True,
+        availability="UNAVAILABLE",
         logo_filename="glassdoor.svg",
         description="Global jobs with company reviews and salary data",
     ),
@@ -70,6 +80,8 @@ SEARCH_PLATFORMS: dict[str, SearchPlatform] = {
         adapter_key="dice",
         regions=("US", "GB"),
         tier="B",
+        search_capable=True,
+        availability="UNAVAILABLE",
         logo_filename="dice.svg",
         description="Technology and engineering jobs",
     ),
@@ -79,6 +91,8 @@ SEARCH_PLATFORMS: dict[str, SearchPlatform] = {
         adapter_key="wttj",
         regions=("FR", "DE", "ES", "NL", "GB", "CZ", "SK"),
         tier="A",
+        search_capable=True,
+        availability="UNAVAILABLE",
         logo_filename="wttj.svg",
         description="European tech and startup jobs",
     ),
@@ -154,6 +168,13 @@ def platforms_for_regions(region_codes: list[str]) -> list[SearchPlatform]:
         platform
         for platform in SEARCH_PLATFORMS.values()
         if any(region in platform.regions for region in region_codes)
+    ]
+
+
+def available_platforms() -> list[SearchPlatform]:
+    """Return only platforms backed by an operational, fixture-tested adapter."""
+    return [
+        platform for platform in SEARCH_PLATFORMS.values() if platform.availability == "AVAILABLE"
     ]
 
 

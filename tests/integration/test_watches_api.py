@@ -37,6 +37,46 @@ def test_create_normalizes_and_lists_only_owned_watches(client: TestClient) -> N
     assert client.post(f"/api/v1/watches/{created['id']}/activate").status_code == 404
 
 
+def test_watch_name_is_generated_when_omitted(client: TestClient) -> None:
+    response = client.post(
+        "/api/v1/watches",
+        json={"target_terms": ["IT Support"], "locations": ["Bangkok"]},
+    )
+
+    assert response.status_code == 201
+    assert response.json()["name"] == "IT Support · Bangkok"
+
+
+def test_watch_source_limits_and_platform_availability_are_enforced(client: TestClient) -> None:
+    too_many_custom_urls = [
+        {
+            "source_kind": "CUSTOM_URL",
+            "adapter_key": "generic_public",
+            "url": f"https://company-{index}.example.invalid/jobs",
+        }
+        for index in range(3)
+    ]
+    response = client.post(
+        "/api/v1/watches",
+        json={
+            "name": "Backend roles",
+            "target_terms": ["Python"],
+            "sources": too_many_custom_urls,
+        },
+    )
+    assert response.status_code == 422
+
+    unavailable = client.post(
+        "/api/v1/watches",
+        json={
+            "name": "Backend roles",
+            "target_terms": ["Python"],
+            "sources": [{"source_kind": "PLATFORM", "platform_key": "jobstreet"}],
+        },
+    )
+    assert unavailable.status_code == 422
+
+
 def test_run_is_active_only_idempotent_and_uses_outbox(
     client: TestClient, session_factory: sessionmaker[Session]
 ) -> None:
@@ -52,8 +92,14 @@ def test_run_is_active_only_idempotent_and_uses_outbox(
 
     with session_factory() as session:
         count = session.scalar(select(func.count()).select_from(OutboxEvent))
-        event = session.scalar(select(OutboxEvent))
-        assert count == 1
+        event = session.scalar(
+            select(OutboxEvent).where(OutboxEvent.event_type == "watch.discovery.requested")
+        )
+        expansion = session.scalar(
+            select(OutboxEvent).where(OutboxEvent.event_type == "watch.query-expansion.requested")
+        )
+        assert count == 2
         assert event is not None
+        assert expansion is not None
         assert event.event_type == "watch.discovery.requested"
         assert event.payload["owner_id"] == str(USER_A)

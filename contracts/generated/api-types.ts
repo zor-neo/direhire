@@ -939,6 +939,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/watches/platforms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List Platforms */
+        get: operations["list_platforms_api_v1_watches_platforms_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/watches/{watch_id}": {
         parameters: {
             query?: never;
@@ -1395,6 +1412,11 @@ export interface components {
             /** Title */
             title: string;
         };
+        /**
+         * ExperienceLevel
+         * @enum {string}
+         */
+        ExperienceLevel: "ANY" | "ENTRY" | "JUNIOR" | "MID" | "SENIOR" | "LEAD" | "EXECUTIVE";
         /** ExportDownloadRead */
         ExportDownloadRead: {
             /** Expires In Seconds */
@@ -1900,12 +1922,12 @@ export interface components {
             employment_types?: ("FULL_TIME" | "PART_TIME" | "CONTRACT" | "TEMPORARY" | "INTERNSHIP" | "FREELANCE")[];
             /** Excluded Terms */
             excluded_terms?: string[];
-            /** Experience Target */
-            experience_target?: string | null;
+            /** @default ANY */
+            experience_level: components["schemas"]["ExperienceLevel"];
             /** Locations */
             locations?: string[];
             /** Name */
-            name: string;
+            name?: string | null;
             /**
              * Posting Age Days
              * @default 30
@@ -1933,8 +1955,8 @@ export interface components {
             employment_types: string[];
             /** Excluded Terms */
             excluded_terms: string[];
-            /** Experience Target */
-            experience_target: string | null;
+            /** Experience Level */
+            experience_level: string;
             /** Id */
             id: string;
             /** Locations */
@@ -1993,7 +2015,9 @@ export interface components {
         /** WatchSourceInput */
         WatchSourceInput: {
             /** Adapter Key */
-            adapter_key: string;
+            adapter_key?: string | null;
+            /** Platform Key */
+            platform_key?: string | null;
             /**
              * Source Kind
              * @enum {string}
@@ -2008,6 +2032,8 @@ export interface components {
             adapter_key: string;
             /** Id */
             id: string;
+            /** Platform Key */
+            platform_key: string | null;
             /** Source Kind */
             source_kind: string;
             /** Url */
@@ -4009,6 +4035,39 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WatchRead"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_platforms_api_v1_watches_platforms_get: {
+        parameters: {
+            query?: {
+                location?: string | null;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    }[];
                 };
             };
             /** @description Validation Error */

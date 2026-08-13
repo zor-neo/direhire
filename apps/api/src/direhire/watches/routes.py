@@ -7,7 +7,11 @@ from direhire.auth import CurrentUser, current_user
 from direhire.db import get_session
 from direhire.errors import AppError
 from direhire.sources.csv_import import parse_source_csv
-from direhire.sources.platforms import SEARCH_PLATFORMS, platform_as_dict, platforms_for_regions, resolve_location_regions
+from direhire.sources.platforms import (
+    available_platforms,
+    platform_as_dict,
+    resolve_location_regions,
+)
 from direhire.watches.schemas import WatchCreate, WatchRead, WatchRunRead
 from direhire.watches.service import WatchService
 
@@ -18,11 +22,15 @@ User = Annotated[CurrentUser, Depends(current_user)]
 
 @router.get("/platforms")
 def list_platforms(location: str | None = None) -> list[dict]:
+    platforms = available_platforms()
     if location:
         regions = resolve_location_regions(location)
-        platforms = platforms_for_regions(regions)
-    else:
-        platforms = list(SEARCH_PLATFORMS.values())
+        if regions:
+            platforms = [
+                platform
+                for platform in platforms
+                if any(region in platform.regions for region in regions)
+            ]
     return [platform_as_dict(p) for p in platforms]
 
 

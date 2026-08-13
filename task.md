@@ -11,50 +11,61 @@ Direction recorded: practical public-source research before adapter design; disp
 - [x] Fix: created `.env` with `ALLOW_INSECURE_DEV_AUTH=true`
 - [x] Fix: created `apps/web/.env.local` with `DEV_USER_ID`
 - [x] Fix: `loadCsrfToken()` returns placeholder in dev mode (backend skips CSRF for dev users)
-- [ ] Verify frontend builds
-- [ ] Verify Watch creation persists to DB (needs running stack)
+- [x] Verify frontend production build
+- [x] Verify Watch creation persists through the API integration path
 
 ## Phase 2 — Backend Schema Evolution
 - [x] 2A: Experience level enum (schema + model + migration)
 - [x] 2B: search_expansion JSON column (model + migration)
 - [x] 2C: Search platform registry (new platforms.py + API endpoint)
-- [ ] 2D: SearchAdapter contract (extend contracts.py)
-- [ ] Correct migration 0019 to expand/contract and normalize legacy values
-- [ ] Add server-validated platform_key and enforce 3 platform + 2 custom URL limit
-- [ ] Hide unimplemented/paused platforms from normal platform endpoint
+- [x] 2D: SearchAdapter/SearchRequest contract (GET or bounded JSON POST)
+- [x] Correct migration 0019 to expand/contract and normalize legacy values
+- [x] Add server-validated platform_key and enforce 3 platform + 2 custom URL limit
+- [x] Hide unimplemented/paused platforms from normal platform endpoint
 
 ## Phase R — Practical Retrieval Research
-- [ ] JobStreet: inspect direct HTTP and browser responses; record feasibility
-- [ ] JobsDB: inspect direct HTTP and browser responses; record feasibility
-- [ ] JobThai: inspect direct HTTP and browser responses; record feasibility
-- [ ] Capture sanitized research fixtures for viable response paths
-- [ ] Record DIRECT_HTTP/BROWSER/LIMITED/PAUSED/RESEARCH_ONLY decision per platform
+- [x] JobStreet: direct HTTP/SSR feasibility established; browser inspection unavailable
+- [x] JobsDB: direct HTTP/SSR feasibility established; browser inspection unavailable
+- [x] JobThai: direct HTTP, SSR, GraphQL, and detail feasibility established; browser inspection unavailable
+- [x] Capture a sanitized synthetic JobThai fixture for the viable response shape
+- [x] Record decisions: JobStreet/JobsDB `PAUSED`; JobThai `DIRECT_HTTP`
 
 ## Phase 3 — Static Alias Map
-- [ ] Create aliases.py with ~100-200 common tech term aliases
-- [ ] Integrate into deterministic_match()
-- [ ] Add tests for alias expansion matching
+- [x] Create aliases.py with a reviewed mechanical tech-term alias set
+- [x] Integrate alias groups into deterministic_match()
+- [x] Add tests for positive matches, exclusions, and short-token false positives
 
 ## Phase 4 — AI Query Expansion
-- [ ] Expansion contract (expansion_contracts.py)
-- [ ] Asynchronous expansion service through AI orchestrator and transactional outbox
-- [ ] Integrate idempotent request into meaningful Watch create/replace criteria changes
-- [ ] Use expanded terms for platform retrieval only; preserve deterministic final matching
+- [x] Expansion contract (expansion_contracts.py)
+- [x] Asynchronous expansion service through AI orchestrator and transactional outbox
+- [x] Integrate idempotent request into meaningful Watch create/replace criteria changes
+- [x] Use expanded terms for platform retrieval only; preserve deterministic final matching
 
 ## Phase 5 — Search Adapters
-- [/] SEEK Group research (JobStreet/JobsDB API endpoints)
-- [ ] SEEK Group adapter implementation
-- [ ] SEEK Group fixture tests
-- [ ] JobThai research
-- [ ] JobThai adapter implementation
-- [ ] JobThai fixture tests
+- [x] SEEK Group research (SSR/Apollo and GraphQL feasibility; terms/robots reviewed)
+- [x] SEEK Group adapter decision: paused pending documented permission/API access
+- [x] SEEK Group fixture tests: not applicable while paused
+- [x] JobThai research
+- [x] JobThai adapter implementation
+- [x] JobThai fixture tests
 
 ## Phase 6 — Frontend UX Revamp
-- [ ] Platform cards component
-- [ ] Custom URL auto-detection
-- [ ] Watch creation form redesign
-- [ ] Experience level dropdown
-- [ ] Auto-generated Watch name
-- [ ] Button wording: "Create Watch"
-- [ ] Platform identity cards (permitted official assets or neutral text/initial fallback)
-- [ ] Styles for new components
+- [x] Platform cards component
+- [x] Custom URL auto-detection, with authoritative server-side resolution
+- [x] Watch creation form redesign
+- [x] Experience level dropdown
+- [x] Auto-generated Watch name on the server
+- [x] Button wording: "Create Watch"
+- [x] Neutral text/initial platform identity cards
+- [x] Responsive and accessible styles for new components
+
+## Verification — 2026-08-13
+
+- [x] `uv run ruff check apps/api/src tests migrations`
+- [x] Full backend suite: 106 tests passed
+- [x] Frontend ESLint and TypeScript checks
+- [x] Next.js production static build (12/12 pages)
+- [x] OpenAPI export and TypeScript client regeneration
+- [x] Terraform formatting check
+- [x] PostgreSQL migration smoke: base → head → 0018 → head in an isolated temporary database
+- [ ] Visual browser walkthrough of the local Watch form — deferred because the in-app browser sandbox metadata was unavailable in this environment

@@ -66,14 +66,22 @@ def test_repeated_source_failures_open_circuit_and_preserve_other_success(
                 name="Circuit",
                 target_terms=["Python"],
                 sources=[
-                    {"source_kind": "PLATFORM", "adapter_key": "synthetic_board"},
-                    {"source_kind": "PLATFORM", "adapter_key": "unavailable_adapter"},
+                    {
+                        "source_kind": "CUSTOM_URL",
+                        "adapter_key": "synthetic_board",
+                        "url": "https://synthetic.example.invalid/jobs",
+                    },
+                    {
+                        "source_kind": "CUSTOM_URL",
+                        "adapter_key": "unavailable_adapter",
+                        "url": "https://unavailable.example.invalid/jobs",
+                    },
                 ],
             ),
         )
         WatchService(database).activate(watch.id, str(USER_A), "FREE")
         run = WatchService(database).request_manual_run(watch.id, str(USER_A), "FREE")
-        result = DiscoveryProcessor(database, lambda source: fixture).process(run.id)
+        result = DiscoveryProcessor(database, lambda source, request: fixture).process(run.id)
 
         database.refresh(policy)
         assert result.outcome == "COMPLETED_WITH_WARNINGS"

@@ -85,12 +85,18 @@ def test_matching_run_creates_one_in_app_digest_and_one_selected_external_delive
                 name="Digest Watch",
                 target_terms=["Python"],
                 required_terms=["PostgreSQL"],
-                sources=[{"source_kind": "PLATFORM", "adapter_key": "synthetic_board"}],
+                sources=[
+                    {
+                        "source_kind": "CUSTOM_URL",
+                        "adapter_key": "synthetic_board",
+                        "url": "https://synthetic.example.invalid/jobs",
+                    }
+                ],
             ),
         )
         WatchService(database).activate(watch.id, str(USER_A), "FREE")
         run = WatchService(database).request_manual_run(watch.id, str(USER_A), "FREE")
-        processor = DiscoveryProcessor(database, lambda source: fixture)
+        processor = DiscoveryProcessor(database, lambda source, request: fixture)
         processor.process(run.id)
         processor.process(run.id)
 

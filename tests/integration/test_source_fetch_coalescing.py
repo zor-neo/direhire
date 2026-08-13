@@ -22,7 +22,13 @@ def seed_watch(database: Session, name: str) -> object:
             name=name,
             target_terms=["Python"],
             required_terms=["PostgreSQL"],
-            sources=[{"source_kind": "PLATFORM", "adapter_key": "synthetic_board"}],
+            sources=[
+                {
+                    "source_kind": "CUSTOM_URL",
+                    "adapter_key": "synthetic_board",
+                    "url": "https://synthetic.example.invalid/jobs",
+                }
+            ],
         ),
     )
     WatchService(database).activate(watch.id, str(USER_A), "PREMIUM")
@@ -35,9 +41,9 @@ def test_recent_public_fetch_is_reused_across_watch_runs(
     fixture = Path("tests/fixtures/synthetic_board/jobs.html").read_text(encoding="utf-8")
     calls = 0
 
-    def content_provider(source: object) -> str:
+    def content_provider(source: object, request: object) -> str:
         nonlocal calls
-        del source
+        del source, request
         calls += 1
         return fixture
 
@@ -97,12 +103,12 @@ def test_live_shared_fetch_keeps_run_retryable_until_result_is_available(
         database.commit()
         watch = seed_watch(database, "Pending")
         run = WatchService(database).request_manual_run(watch.id, str(USER_A), "PREMIUM")
-        source = watch.sources[0]
-        key = hashlib.sha256(f"synthetic_board|{source.source_key}".encode()).hexdigest()
+        normalized_source = "https://synthetic.example.invalid/jobs"
+        key = hashlib.sha256(f"synthetic_board|GET|{normalized_source}|".encode()).hexdigest()
         shared = SharedSourceFetch(
             fetch_key=key,
             adapter_key="synthetic_board",
-            normalized_source=source.source_key,
+            normalized_source=normalized_source,
             status="RUNNING",
             owner_run_id="another-run",
             lease_expires_at=datetime.now(UTC) + timedelta(minutes=1),
@@ -111,7 +117,7 @@ def test_live_shared_fetch_keeps_run_retryable_until_result_is_available(
         database.commit()
 
         with pytest.raises(SharedFetchPending):
-            DiscoveryProcessor(database, lambda source: fixture).process(run.id)
+            DiscoveryProcessor(database, lambda source, request: fixture).process(run.id)
         database.refresh(run)
         assert run.status == "QUEUED"
         assert run.sources_failed == 0
@@ -127,6 +133,6 @@ def test_live_shared_fetch_keeps_run_retryable_until_result_is_available(
         database.commit()
         completed = DiscoveryProcessor(
             database,
-            lambda source: (_ for _ in ()).throw(AssertionError("should reuse cache")),
+            lambda source, request: (_ for _ in ()).throw(AssertionError("should reuse cache")),
         ).process(run.id)
         assert completed.status == "SUCCEEDED"

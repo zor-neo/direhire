@@ -1,4 +1,5 @@
 import ipaddress
+import json
 import socket
 from urllib.parse import urlsplit
 
@@ -7,6 +8,7 @@ import httpx
 from direhire.config import Settings
 from direhire.errors import AppError
 from direhire.models import WatchSource
+from direhire.sources.contracts import SearchRequest
 from direhire.sources.validation import normalize_public_url
 
 
@@ -14,18 +16,36 @@ class SafePublicFetcher:
     def __init__(self, settings: Settings) -> None:
         self.settings = settings
 
-    def __call__(self, source: WatchSource) -> str:
+    def __call__(self, source: WatchSource, request: SearchRequest | None = None) -> str:
+        if request is not None:
+            return self.fetch_request(request)
         if not source.url:
             raise AppError("SOURCE_UNSUPPORTED", "This source requires a dedicated adapter.", 422)
         return self.fetch_url(source.url)
 
     def fetch_url(self, raw_url: str) -> str:
-        url = normalize_public_url(raw_url)
+        return self.fetch_request(SearchRequest(method="GET", url=raw_url, headers={}))
+
+    def fetch_request(self, request: SearchRequest) -> str:
+        if request.method not in {"GET", "POST"}:
+            raise AppError("SOURCE_UNSUPPORTED", "The source request method is unsupported.", 422)
+        if any(
+            key.casefold() not in {"accept", "content-type", "client-name"}
+            for key in request.headers
+        ):
+            raise AppError("SOURCE_UNSUPPORTED", "The source request headers are unsupported.", 422)
+        if request.method == "GET" and request.json_body is not None:
+            raise AppError("SOURCE_UNSUPPORTED", "GET source requests cannot contain JSON.", 422)
+        url = normalize_public_url(request.url)
         self._validate_dns(url)
+        body = (
+            json.dumps(request.json_body).encode("utf-8") if request.json_body is not None else None
+        )
+        headers = {"User-Agent": "DireHire/0.1", **request.headers}
         try:
             with (
                 httpx.Client(follow_redirects=False, timeout=15.0, trust_env=False) as client,
-                client.stream("GET", url, headers={"User-Agent": "DireHire/0.1"}) as response,
+                client.stream(request.method, url, headers=headers, content=body) as response,
             ):
                 response.raise_for_status()
                 content_type = response.headers.get("Content-Type", "").split(";", 1)[0]

@@ -58,6 +58,7 @@ class WatchSource(Base):
         ForeignKey("job_watches.id", ondelete="CASCADE"), nullable=False, index=True
     )
     source_kind: Mapped[str] = mapped_column(String(24), nullable=False)
+    platform_key: Mapped[str | None] = mapped_column(String(64))
     adapter_key: Mapped[str] = mapped_column(String(64), nullable=False)
     source_key: Mapped[str] = mapped_column(String(512), nullable=False)
     url: Mapped[str | None] = mapped_column(String(2048))

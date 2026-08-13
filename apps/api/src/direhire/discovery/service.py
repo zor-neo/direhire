@@ -22,17 +22,19 @@ from direhire.notifications.service import queue_run_digest
 from direhire.sources.adapters.ashby import AshbyAdapter
 from direhire.sources.adapters.generic_public import GenericPublicAdapter
 from direhire.sources.adapters.greenhouse import GreenhouseAdapter
+from direhire.sources.adapters.jobthai import JobThaiAdapter
 from direhire.sources.adapters.lever import LeverAdapter
 from direhire.sources.adapters.personio import PersonioAdapter
 from direhire.sources.adapters.pinpoint import PinpointAdapter
 from direhire.sources.adapters.recruitee import RecruiteeAdapter
 from direhire.sources.adapters.synthetic_board import SyntheticBoardAdapter
 from direhire.sources.coalescing import SharedFetchPending, SourceFetchCoalescer
-from direhire.sources.contracts import SourceAdapter
+from direhire.sources.contracts import SearchQuery, SearchRequest, SourceAdapter
 from direhire.sources.policy_service import SourcePolicyService
+from direhire.watches.expansion_service import expanded_search_keywords
 from direhire.watches.matching import deterministic_match
 
-ContentProvider = Callable[[WatchSource], str]
+ContentProvider = Callable[[WatchSource, SearchRequest | None], str]
 
 
 class DiscoveryProcessor:
@@ -48,6 +50,7 @@ class DiscoveryProcessor:
             RecruiteeAdapter.key: RecruiteeAdapter(),
             PersonioAdapter.key: PersonioAdapter(),
             PinpointAdapter.key: PinpointAdapter(),
+            JobThaiAdapter.key: JobThaiAdapter(),
         }
 
     def process(self, run_id: str) -> JobWatchRun:
@@ -143,10 +146,25 @@ class DiscoveryProcessor:
         if adapter is None:
             raise AppError("SOURCE_UNSUPPORTED", "This source is not supported.", 422)
         adapter.validate_source(source.url)
+        request = None
+        if source.source_kind == "PLATFORM":
+            build_search_request = getattr(adapter, "build_search_request", None)
+            if build_search_request is None or not source.platform_key:
+                raise AppError("SOURCE_UNSUPPORTED", "This search platform is unsupported.", 422)
+            request = build_search_request(
+                source.platform_key,
+                SearchQuery(
+                    keywords=expanded_search_keywords(watch),
+                    location=watch.locations[0] if watch.locations else None,
+                    experience_level=watch.experience_level,
+                    posting_age_days=watch.posting_age_days,
+                ),
+            )
         discovered = SourceFetchCoalescer(self.session, get_settings()).discover(
             run_id=run.id,
             source=source,
             adapter=adapter,
+            request=request,
             content_provider=self.content_provider,
         )
         matched = 0

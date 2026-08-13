@@ -1,0 +1,37 @@
+{
+  "data": {
+    "searchJobs": {
+      "data": {
+        "total": 2,
+        "data": [
+          {
+            "id": "synthetic-jobthai-001",
+            "jobTitle": "Backend Python Engineer",
+            "companyName": "Fictional River Labs",
+            "workLocation": "Bangkok, Thailand",
+            "salary": "Not specified",
+            "updatedAt": "2026-08-12T08:30:00.000Z",
+            "jobDescription": [
+              "Build reliable Python services.",
+              "Design APIs and background jobs."
+            ],
+            "jobAttribute": [
+              "Working knowledge of PostgreSQL.",
+              "Clear written communication."
+            ]
+          },
+          {
+            "id": "synthetic-jobthai-002",
+            "jobTitle": "Frontend Engineer",
+            "companyName": "Fictional Lotus Systems",
+            "workLocation": "Chiang Mai, Thailand",
+            "salary": "Not specified",
+            "updatedAt": "2026-08-11T03:15:00.000Z",
+            "jobDescription": ["Build accessible web interfaces."],
+            "jobAttribute": ["Experience with TypeScript and React."]
+          }
+        ]
+      }
+    }
+  }
+}

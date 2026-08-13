@@ -1,14 +1,15 @@
 locals {
   event_queue_routes = {
-    "watch.discovery.requested"     = aws_sqs_queue.workload["source-discovery"].url
-    "analyze.job.requested"         = aws_sqs_queue.workload["source-discovery"].url
-    "job.analysis.requested"        = aws_sqs_queue.workload["ai-analysis"].url
-    "private.ai.requested"          = aws_sqs_queue.workload["interactive-ai"].url
-    "notification.digest.requested" = aws_sqs_queue.workload["notification"].url
-    "private.document.requested"    = aws_sqs_queue.workload["documents"].url
-    "file.scan.requested"           = aws_sqs_queue.workload["documents"].url
-    "privacy.export.requested"      = aws_sqs_queue.workload["maintenance"].url
-    "privacy.deletion.requested"    = aws_sqs_queue.workload["maintenance"].url
+    "watch.discovery.requested"       = aws_sqs_queue.workload["source-discovery"].url
+    "analyze.job.requested"           = aws_sqs_queue.workload["source-discovery"].url
+    "job.analysis.requested"          = aws_sqs_queue.workload["ai-analysis"].url
+    "private.ai.requested"            = aws_sqs_queue.workload["interactive-ai"].url
+    "watch.query-expansion.requested" = aws_sqs_queue.workload["interactive-ai"].url
+    "notification.digest.requested"   = aws_sqs_queue.workload["notification"].url
+    "private.document.requested"      = aws_sqs_queue.workload["documents"].url
+    "file.scan.requested"             = aws_sqs_queue.workload["documents"].url
+    "privacy.export.requested"        = aws_sqs_queue.workload["maintenance"].url
+    "privacy.deletion.requested"      = aws_sqs_queue.workload["maintenance"].url
   }
   lambda_workloads = {
     source-discovery = { timeout = 150, memory = 1024, concurrency = 4 }

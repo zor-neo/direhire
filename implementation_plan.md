@@ -14,6 +14,14 @@ Public-source feasibility must be established through practical observation befo
 
 Research outcomes are classified as `DIRECT_HTTP`, `BROWSER`, `LIMITED`, `PAUSED`, or `RESEARCH_ONLY`. Only fixture-tested, operational platforms are selectable in the production Watch form.
 
+## Current State — 2026-08-13
+
+Phases 1–6 below are implemented and verified, subject to one deferred visual browser walkthrough.
+JobThai is the first selectable platform (`DIRECT_HTTP`); JobStreet and JobsDB remain recorded
+but hidden (`PAUSED`). `task.md` is the concise completion checklist and
+`docs/research/2026-08-13-search-platform-feasibility.md` contains the evidence behind those
+source decisions.
+
 ## Scope Summary
 
 | Phase | Description | Depends On |
@@ -23,7 +31,7 @@ Research outcomes are classified as `DIRECT_HTTP`, `BROWSER`, `LIMITED`, `PAUSED
 | **R** | Practical retrieval research (JobStreet, JobsDB, JobThai) | Phase 2 schema foundation |
 | **3** | Static alias map for deterministic synonym matching | Phase 2 |
 | **4** | Asynchronous AI query expansion after Watch creation | Phase 2, 3 |
-| **5** | First SearchAdapter implementations (SEEK Group, JobThai) | Phase R |
+| **5** | First SearchAdapter implementation (JobThai); SEEK Group paused pending permission | Phase R |
 | **6** | Frontend UX revamp (logo cards, experience dropdown, auto-detect URLs, auto-name) | Phase 2, 5 |
 
 ---
@@ -104,10 +112,9 @@ Change in `WatchRead`:
 #### [NEW] Migration `20260813_0019_watch_experience_expansion.py`
 
 ```python
-# Expand/contract: add new column, backfill, then drop old
+# Expand/contract: add and normalize the new column; retain the old column
 op.add_column("job_watches", sa.Column("experience_level", sa.String(16), nullable=False, server_default="ANY"))
-op.execute("UPDATE job_watches SET experience_level = COALESCE(experience_target, 'ANY')")
-op.drop_column("job_watches", "experience_target")
+op.execute("UPDATE job_watches SET experience_level = CASE ... ELSE 'ANY' END")
 ```
 
 > [!WARNING]
@@ -155,19 +162,22 @@ class SearchPlatform:
 
 SEARCH_PLATFORMS: dict[str, SearchPlatform] = {
     "jobstreet": SearchPlatform(
-        key="jobstreet", name="JobStreet", adapter_key="seek_graphql",
-        regions=("MY", "SG", "TH", "ID", "PH", "HK"),
-        tier="A", search_capable=True, logo_filename="jobstreet.svg",
+        key="jobstreet", name="JobStreet", adapter_key="seek_search",
+        regions=("MY", "SG", "ID", "PH"),
+        tier="A", search_capable=True, availability="PAUSED",
+        logo_filename="jobstreet.svg",
     ),
     "jobsdb": SearchPlatform(
-        key="jobsdb", name="JobsDB", adapter_key="seek_graphql",
+        key="jobsdb", name="JobsDB", adapter_key="seek_search",
         regions=("TH", "HK"),
-        tier="A", search_capable=True, logo_filename="jobsdb.svg",
+        tier="A", search_capable=True, availability="PAUSED",
+        logo_filename="jobsdb.svg",
     ),
     "jobthai": SearchPlatform(
         key="jobthai", name="JobThai", adapter_key="jobthai",
         regions=("TH",),
-        tier="A", search_capable=True, logo_filename="jobthai.svg",
+        tier="A", search_capable=True, availability="AVAILABLE",
+        logo_filename="jobthai.svg",
     ),
     # Future additions: glassdoor, dice, wttj, blognone, eures, usajobs
 }
@@ -197,8 +207,8 @@ Add route (or separate `platforms/routes.py`):
 
 ```python
 @router.get("/platforms", response_model=list[PlatformRead])
-def list_platforms() -> list[dict]:
-    return [asdict(p) for p in SEARCH_PLATFORMS.values()]
+def list_platforms(location: str | None = None) -> list[dict]:
+    return [platform_as_dict(p) for p in available_platforms_for(location)]
 ```
 
 ---
@@ -223,8 +233,8 @@ class SearchAdapter(Protocol):
     key: str
     capabilities: AdapterCapabilities
 
-    def build_search_url(self, platform_key: str, query: SearchQuery) -> str:
-        """Construct the platform-specific search URL/params from Watch criteria."""
+    def build_search_request(self, platform_key: str, query: SearchQuery) -> SearchRequest:
+        """Construct a bounded public GET or POST request from Watch criteria."""
         ...
 
     def discover_jobs(self, content: str, source_url: str | None = None) -> list[DiscoveredJob]:
@@ -234,7 +244,7 @@ class SearchAdapter(Protocol):
     def health_check(self, content: str) -> bool: ...
 ```
 
-The key difference: `SearchAdapter.build_search_url()` translates Watch parameters into a platform-specific query. The existing `SourceAdapter` takes a pre-known URL.
+The key difference: `SearchAdapter.build_search_request()` translates Watch parameters into a transport-neutral public request. This is evidence-driven: SEEK search pages use GET while JobThai keyword search uses a GraphQL POST. The existing `SourceAdapter` takes a pre-known URL.
 
 #### [MODIFY] [discovery/service.py](file:///e:/MyDev/direhire/apps/api/src/direhire/discovery/service.py)
 
@@ -246,21 +256,21 @@ def _process_source(self, run, watch, source):
     if adapter is None:
         raise AppError("SOURCE_UNSUPPORTED", ...)
     
-    if isinstance(adapter, SearchAdapter) and source.source_kind == "PLATFORM":
-        # Build search URL from Watch parameters
+    if source.source_kind == "PLATFORM":
+        # Build a bounded GET/POST request from Watch parameters
         query = SearchQuery(
             keywords=watch.search_expansion.get("expanded_targets", watch.target_terms),
             location=watch.locations[0] if watch.locations else None,
             experience_level=watch.experience_level,
             posting_age_days=watch.posting_age_days,
         )
-        source_url = adapter.build_search_url(source.platform_key, query)
+        request = adapter.build_search_request(source.platform_key, query)
     else:
         # Existing crawl behavior
-        source_url = source.url
-        adapter.validate_source(source_url)
+        request = None
+        adapter.validate_source(source.url)
 
-    # Rest of discovery logic (fetch content, parse, match)...
+    # Fetch/coalesce using request when present, then parse and match.
 ```
 
 ---
@@ -348,15 +358,12 @@ Integrate alias expansion into matching:
 
  def deterministic_match(*, text, target_terms, required_terms, excluded_terms):
      haystack = " ".join(text.casefold().split())
--    target_hits = tuple(term for term in target_terms if term.casefold() in haystack)
--    missing_required = tuple(term for term in required_terms if term.casefold() not in haystack)
--    excluded_hits = tuple(term for term in excluded_terms if term.casefold() in haystack)
-+    expanded_targets = expand_with_aliases(target_terms)
-+    expanded_required = expand_with_aliases(required_terms)
-+    expanded_excluded = expand_with_aliases(excluded_terms)
-+    target_hits = tuple(t for t in expanded_targets if t.casefold() in haystack)
-+    missing_required = tuple(t for t in expanded_required if t.casefold() not in haystack)
-+    excluded_hits = tuple(t for t in expanded_excluded if t.casefold() in haystack)
+    # Each original term forms one group with its reviewed aliases.
+    # A Required group passes when the original OR any alias is present;
+    # aliases never become additional mandatory terms.
+    target_hits = matched_original_terms(target_terms, haystack)
+    missing_required = unmatched_original_terms(required_terms, haystack)
+    excluded_hits = matched_original_terms(excluded_terms, haystack)
 ```
 
 #### Tests
@@ -400,21 +407,21 @@ class QueryExpansionResult(BaseModel):
 #### [NEW] `apps/api/src/direhire/watches/expansion_service.py`
 
 ```python
-class WatchExpansionService:
+class WatchExpansionOrchestrator:
     """AI-powered query expansion for Watch search terms.
     
     Uses the AI orchestrator with the minimum Watch criteria required.
     Requested through the transactional outbox after Watch persistence.
     """
     
-    def expand(self, session, watch_data: WatchCreate) -> dict | None:
+    def process(self, watch_id: str, input_hash: str, correlation_id: str) -> JobWatch | None:
         # 1. Build minimal prompt with watch terms only (§20)
         # 2. Route: task=QUERY_EXPANSION, capability=AI_STANDARD.
         #    Treat raw Watch intent/location as private by default. A future
         #    sanitized-public route may be introduced only with an explicit classifier.
         # 3. Validate response against QueryExpansionResult schema (§17)
         # 4. One bounded repair attempt if invalid
-        # 5. Return validated expansion dict, or None if AI unavailable
+        # 5. Meter attempts/cost and store schema/provenance metadata
         # 6. AI failure does NOT block Watch creation — just means no expansion
 ```
 
@@ -422,7 +429,7 @@ Key design decisions:
 - **AI failure is non-blocking.** The Watch is created without waiting for expansion. Matching falls back to literal + alias map.
 - **Least-data private routing by default.** Send normalized criteria only; never send unrelated Profile/CV/application data.
 - **One operation per meaningful criteria version.** Cosmetic edits such as renaming do not re-expand. Cache in `search_expansion`.
-- **Idempotency key:** `query-expansion:{hash_of_terms}:{EXPANSION_SCHEMA_VERSION}:{EXPANSION_PROMPT_VERSION}`
+- **Idempotency key:** `watch-expansion:{watch_id}:{criteria_hash}:{schema_version}:{prompt_version}`
 
 ### 4C. Integration into Watch Service
 
@@ -433,10 +440,10 @@ Key design decisions:
      values = data.model_dump(exclude={"sources"})
      watch = JobWatch(owner_id=owner_id, **values)
      watch.sources = [self._source_model(s.model_dump()) for s in data.sources]
-+    # Persist an idempotent query-expansion request in the same transaction.
-+    self.outbox.add_query_expansion_requested(watch, data)
-     self.session.add(watch)
-     self.session.commit()
+    self.session.add(watch)
++    self.session.flush()
++    queue_watch_expansion(self.session, watch)
+    self.session.commit()
      return watch
 ```
 
@@ -450,12 +457,7 @@ When building search queries for SearchAdapters, prefer expanded terms:
 
 ```python
 # In _process_source, when building SearchQuery:
-expansion = watch.search_expansion or {}
-expanded_targets = expansion.get("target_expansions", [])
-# Flatten: original terms + all variants
-keywords = list(watch.target_terms)
-for exp in expanded_targets:
-    keywords.extend(exp.get("variants", []))
+keywords = expanded_search_keywords(watch)
 ```
 
 When matching discovered listings, `deterministic_match()` uses only user terms plus the reviewed static alias map (Phase 3). AI expansion broadens platform retrieval but never independently satisfies Required terms, triggers Exclude terms, or establishes the final Watch match.
@@ -466,40 +468,10 @@ When matching discovered listings, `deterministic_match()` uses only user terms 
 
 ### 5A. SEEK Group Adapter (JobStreet + JobsDB)
 
-#### [NEW] `apps/api/src/direhire/sources/adapters/seek_graphql.py`
+**Current decision: `PAUSED`.** Practical research confirmed technically rich public SSR/Apollo responses, but current robots rules and terms do not support an automated production adapter without permission. Retain the research notes and registry metadata; do not implement or expose these platforms unless permission/API access changes the result.
 
-Single adapter serving both JobStreet and JobsDB via their shared GraphQL endpoint.
-
-```python
-class SeekGraphQLAdapter:
-    key = "seek_graphql"
-    capabilities = AdapterCapabilities(
-        pagination=True, keyword_search=True,
-        location_search=True, browser_required=False,
-        full_description=False,  # search results have summary; full JD needs follow-up
-    )
-    
-    DOMAINS = {
-        "jobstreet": "https://xapi.supercharge-srp.co/job-search/graphql",
-        "jobsdb": "https://xapi.supercharge-srp.co/job-search/graphql",
-    }
-    
-    def build_search_url(self, platform_key: str, query: SearchQuery) -> str:
-        # Construct GraphQL query with:
-        # - keywords from query.keywords (joined)
-        # - locationId from LOCATION_MAPS lookup
-        # - experience level filter
-        # - posting age filter
-        # Returns the full request URL + params
-        ...
-    
-    def discover_jobs(self, content: str, source_url=None) -> list[DiscoveredJob]:
-        # Parse GraphQL JSON response → list of DiscoveredJob
-        data = json.loads(content)
-        jobs = data.get("data", {}).get("jobSearch", {}).get("jobs", [])
-        # Map each to DiscoveredJob...
-        ...
-```
+No production adapter is created while this decision is `PAUSED`; the registry retains the
+platform metadata but the normal Watch endpoint excludes it.
 
 > [!IMPORTANT]
 > **Research required before implementation:** Inspect all public response paths, not only GraphQL. SEEK sites may return different HTML, hydration, REST/XHR, GraphQL, persisted-query, locale-specific, or challenge responses in direct HTTP and browser contexts. The adapter cannot be built from assumptions.
@@ -526,7 +498,7 @@ class JobThaiAdapter:
 ```
 
 > [!IMPORTANT]
-> Same research requirement: inspect JobThai's actual search mechanism (API endpoint vs HTML scraping vs JSON-LD) before building.
+> Research completed: unauthenticated keyword GraphQL returns structured search results and public detail pages embed `JobPosting` JSON-LD in Next.js RSC output. Implement with conservative direct-HTTP controls and synthetic fixture tests. See `docs/research/2026-08-13-search-platform-feasibility.md`.
 
 ---
 
@@ -554,7 +526,7 @@ Complete rewrite of the Watch creation form. The new form has three sections:
 **Section 2: Where should we search? (always visible)**
 ```
 - Logo cards for available search platforms
-- Filtered by entered location (fetch from GET /api/v1/platforms)
+- Filtered by entered location (fetch from GET /api/v1/watches/platforms)
 - "Recommended for [location]:" section + "Also available:" section
 - Checkbox on each card, max 3 selected
 - Selected platforms shown as removable chips
@@ -565,8 +537,8 @@ Complete rewrite of the Watch creation form. The new form has three sections:
 - [▾ Watch a specific company's career page]
     - URL input with auto-detection
     - Detected ATS shown as label (e.g. "✅ Stripe via Greenhouse")
-    - [+ Add another URL] up to 3
-    - Supported platforms listed
+    - [+ Add another URL] up to 2
+    - Known ATS patterns labelled immediately; the server remains authoritative
 ```
 
 **Auto-generated Watch name:**
@@ -619,19 +591,10 @@ export function detectAdapter(url: string): { key: string; label: string } | nul
 }
 ```
 
-### 6D. Platform Logos
+### 6D. Platform Identity
 
-#### [NEW] `apps/web/public/logos/` directory
-
-SVG logo files for each supported platform. These need to be sourced/created:
-- `jobstreet.svg`
-- `jobsdb.svg`
-- `jobthai.svg`
-- `glassdoor.svg` (future)
-- Generic fallback icon for unsupported/unknown
-
-> [!NOTE]
-> Prefer permitted official assets. Otherwise use neutral text/initial cards and a generic job-board icon; do not create imitations of protected brand marks.
+Use neutral text/initial cards until permitted official assets are sourced. Do not create
+imitations of protected brand marks.
 
 ### 6E. Styles
 
@@ -662,15 +625,15 @@ uv run pytest tests/ -v
 # - Alias expansion in deterministic matching
 # - AI expansion service (mocked provider)
 # - SearchAdapter contract compliance
-# - SEEK GraphQL adapter fixture parsing
+# - JobThai GraphQL adapter fixture parsing
 # - Platform registry correctness
 # - Custom URL auto-detection
 
-# Frontend build
-cd apps/web && npx next build
+# Frontend lint, typecheck, and build
+pnpm lint && pnpm typecheck && pnpm build
 
-# Contract drift check
-pnpm run check:contracts
+# Contract regeneration
+pnpm generate:openapi && pnpm generate:types
 ```
 
 ### Manual Verification

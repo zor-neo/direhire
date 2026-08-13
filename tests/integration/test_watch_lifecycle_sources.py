@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 from direhire.auth import CurrentUser, current_user
 from direhire.main import app
 from direhire.models import JobWatch, WatchSource
+from direhire.sources.platforms import SEARCH_PLATFORMS, SearchPlatform
 from fastapi.testclient import TestClient
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session, sessionmaker
@@ -17,7 +20,11 @@ def test_watch_sources_are_owned_and_lifecycle_is_explicit(
         "work_arrangements": ["REMOTE"],
         "employment_types": ["FULL_TIME"],
         "sources": [
-            {"source_kind": "PLATFORM", "adapter_key": "synthetic_board"},
+            {
+                "source_kind": "CUSTOM_URL",
+                "adapter_key": "synthetic_board",
+                "url": "https://synthetic.example.invalid/jobs",
+            },
             {
                 "source_kind": "CUSTOM_URL",
                 "adapter_key": "generic_public",
@@ -25,14 +32,28 @@ def test_watch_sources_are_owned_and_lifecycle_is_explicit(
             },
         ],
     }
-    created = client.post("/api/v1/watches", json=payload)
+    synthetic_platform = SearchPlatform(
+        key="synthetic",
+        name="Synthetic",
+        adapter_key="synthetic_board",
+        regions=("ZZ",),
+        tier="A",
+        search_capable=True,
+        availability="AVAILABLE",
+        logo_filename="synthetic.svg",
+    )
+    payload["sources"][0] = {"source_kind": "PLATFORM", "platform_key": "synthetic"}
+    with patch.dict(SEARCH_PLATFORMS, {"synthetic": synthetic_platform}):
+        created = client.post("/api/v1/watches", json=payload)
     assert created.status_code == 201
     watch_id = created.json()["id"]
+    assert created.json()["sources"][0]["platform_key"] == "synthetic"
     assert created.json()["sources"][1]["url"] == "https://careers.example.invalid/jobs"
     assert client.post(f"/api/v1/watches/{watch_id}/activate").status_code == 200
     assert client.post(f"/api/v1/watches/{watch_id}/pause").json()["status"] == "PAUSED"
     assert client.post(f"/api/v1/watches/{watch_id}/archive").json()["status"] == "ARCHIVED"
-    assert client.put(f"/api/v1/watches/{watch_id}", json=payload).status_code == 409
+    with patch.dict(SEARCH_PLATFORMS, {"synthetic": synthetic_platform}):
+        assert client.put(f"/api/v1/watches/{watch_id}", json=payload).status_code == 409
 
     app.dependency_overrides[current_user] = lambda: CurrentUser(USER_B)
     assert client.get(f"/api/v1/watches/{watch_id}").status_code == 404

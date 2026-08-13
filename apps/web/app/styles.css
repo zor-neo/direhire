@@ -471,6 +471,98 @@ select {
 
 .compact-form form { max-width: 42rem; }
 
+.watch-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(18rem, 0.8fr);
+  gap: 1.25rem;
+  align-items: start;
+}
+.watch-builder form { gap: 1rem; }
+.watch-section {
+  display: grid;
+  gap: 0.8rem;
+  margin: 0;
+  padding: 1rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+}
+.watch-section legend {
+  padding: 0 0.35rem;
+  font-size: 0.95rem;
+  font-weight: 750;
+}
+.field-label { display: block; margin-bottom: 0.45rem; font-size: 0.86rem; font-weight: 650; }
+.choice-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0.55rem; }
+.auto-name {
+  margin: 0;
+  padding: 0.65rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--subtle);
+  color: var(--muted);
+  font-size: 0.84rem;
+}
+.auto-name strong { color: var(--ink); }
+.collapsible {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--card) 92%, var(--subtle));
+}
+.collapsible > summary {
+  cursor: pointer;
+  padding: 0.75rem 0.85rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.collapsible > summary:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.collapsible-content { display: grid; gap: 0.8rem; padding: 0 0.85rem 0.85rem; }
+.platform-group-title { margin: 0.25rem 0 -0.25rem; font-size: 0.78rem; color: var(--muted); }
+.platform-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.65rem; }
+.platform-card {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  min-height: 4.5rem;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  background: var(--card);
+  cursor: pointer;
+  transition: border-color 0.12s var(--ease), box-shadow 0.12s var(--ease);
+}
+.platform-card:hover { border-color: var(--line-strong); }
+.platform-card:focus-within { outline: 3px solid var(--focus); outline-offset: 2px; }
+.platform-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.platform-card.disabled { cursor: not-allowed; opacity: 0.5; }
+.platform-card input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.platform-identity {
+  display: grid;
+  place-items: center;
+  flex: 0 0 2.4rem;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.7rem;
+  background: var(--accent-soft);
+  color: var(--accent-dark);
+  font-size: 0.75rem;
+  font-weight: 850;
+}
+.platform-copy { display: grid; gap: 0.15rem; min-width: 0; }
+.platform-copy small { color: var(--muted); font-size: 0.72rem; line-height: 1.35; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.chip-row .meta-chip { cursor: pointer; }
+.empty-inline { margin: 0; color: var(--muted); font-size: 0.86rem; }
+.url-input-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem 0.7rem;
+  align-items: end;
+}
+.url-input-group label { grid-column: 1 / -1; }
+.detection-label { color: var(--muted); font-size: 0.76rem; }
+.detection-label.detected { color: var(--success); }
+.add-url { justify-self: start; }
+.create-watch-button { justify-self: start; min-width: 9rem; }
+
 /* ------------------------------------------------------------
    Lists
    ------------------------------------------------------------ */
@@ -777,6 +869,7 @@ time { color: var(--faint); font-size: 0.82rem; }
   .card-grid { grid-template-columns: 1fr; }
   .feature-card { min-height: auto; }
   .summary { grid-template-columns: repeat(2, 1fr); }
+  .watch-layout { grid-template-columns: 1fr; }
 }
 
 @media (max-width: 700px) {
@@ -784,6 +877,7 @@ time { color: var(--faint); font-size: 0.82rem; }
   .summary, .split-layout, .privacy-grid { grid-template-columns: 1fr; }
   .danger-zone { grid-column: auto; }
   .field-row { grid-template-columns: 1fr; }
+  .platform-grid, .choice-grid { grid-template-columns: 1fr; }
   .item-list > li, .job-list > li { align-items: stretch; flex-direction: column; }
   .compact-field { width: 100%; }
   dl { grid-template-columns: 1fr; gap: 0.15rem; }
@@ -856,4 +950,3 @@ time { color: var(--faint); font-size: 0.82rem; }
 
   .mobile-header { background: rgba(18, 24, 21, 0.9); }
 }
-

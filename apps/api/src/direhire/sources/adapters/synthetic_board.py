@@ -17,8 +17,10 @@ class SyntheticBoardAdapter:
     )
 
     def validate_source(self, source_url: str | None) -> None:
-        if source_url is not None:
-            raise AppError("SOURCE_UNSUPPORTED", "This platform source does not accept a URL.", 422)
+        if source_url is not None and not source_url.startswith(
+            "https://synthetic.example.invalid/"
+        ):
+            raise AppError("SOURCE_UNSUPPORTED", "This synthetic source URL is invalid.", 422)
 
     def discover_jobs(self, content: str, source_url: str | None = None) -> list[DiscoveredJob]:
         parser = _JobParser()

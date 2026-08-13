@@ -12,33 +12,37 @@ down_revision = "20260812_0018"
 
 
 def upgrade() -> None:
-    # Expand/contract: add new column, backfill from old, drop old.
-    # Safe pre-production since no live user data exists yet.
+    # Expand/contract: new code reads experience_level while the previous
+    # release can continue reading experience_target during deployment overlap.
     op.add_column(
         "job_watches",
         sa.Column("experience_level", sa.String(16), nullable=False, server_default="ANY"),
     )
     op.execute(
         "UPDATE job_watches SET experience_level = "
-        "CASE WHEN experience_target IS NOT NULL THEN experience_target ELSE 'ANY' END"
+        "CASE "
+        "WHEN UPPER(TRIM(experience_target)) IN ('ENTRY', 'ENTRY LEVEL', 'ENTRY-LEVEL') "
+        "THEN 'ENTRY' "
+        "WHEN UPPER(TRIM(experience_target)) = 'JUNIOR' THEN 'JUNIOR' "
+        "WHEN UPPER(TRIM(experience_target)) IN ('MID', 'MID LEVEL', 'MID-LEVEL') THEN 'MID' "
+        "WHEN UPPER(TRIM(experience_target)) = 'SENIOR' THEN 'SENIOR' "
+        "WHEN UPPER(TRIM(experience_target)) = 'LEAD' THEN 'LEAD' "
+        "WHEN UPPER(TRIM(experience_target)) IN ('EXECUTIVE', 'DIRECTOR', 'C-SUITE') "
+        "THEN 'EXECUTIVE' "
+        "ELSE 'ANY' END"
     )
-    op.drop_column("job_watches", "experience_target")
 
     op.add_column(
         "job_watches",
         sa.Column("search_expansion", sa.JSON, nullable=True),
     )
+    op.add_column(
+        "watch_sources",
+        sa.Column("platform_key", sa.String(64), nullable=True),
+    )
 
 
 def downgrade() -> None:
+    op.drop_column("watch_sources", "platform_key")
     op.drop_column("job_watches", "search_expansion")
-
-    op.add_column(
-        "job_watches",
-        sa.Column("experience_target", sa.String(64), nullable=True),
-    )
-    op.execute(
-        "UPDATE job_watches SET experience_target = "
-        "CASE WHEN experience_level != 'ANY' THEN experience_level ELSE NULL END"
-    )
     op.drop_column("job_watches", "experience_level")

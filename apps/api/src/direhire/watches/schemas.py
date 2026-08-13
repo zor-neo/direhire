@@ -4,7 +4,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from direhire.sources.validation import normalize_public_url
+from direhire.sources.detection import resolve_custom_source
+from direhire.sources.platforms import SEARCH_PLATFORMS
 
 
 class WatchStatus(StrEnum):
@@ -26,7 +27,8 @@ class ExperienceLevel(StrEnum):
 
 class WatchSourceInput(BaseModel):
     source_kind: Literal["PLATFORM", "CUSTOM_URL"]
-    adapter_key: str = Field(min_length=1, max_length=64, pattern=r"^[a-z0-9_-]+$")
+    platform_key: str | None = Field(default=None, max_length=64, pattern=r"^[a-z0-9_-]+$")
+    adapter_key: str | None = Field(default=None, max_length=64, pattern=r"^[a-z0-9_-]+$")
     url: str | None = Field(default=None, max_length=2048)
 
     @model_validator(mode="after")
@@ -34,9 +36,20 @@ class WatchSourceInput(BaseModel):
         if self.source_kind == "CUSTOM_URL":
             if not self.url:
                 raise ValueError("Custom URL sources require a URL")
-            self.url = normalize_public_url(self.url)
-        elif self.url is not None:
-            raise ValueError("Platform sources do not accept a user URL")
+            if self.platform_key is not None:
+                raise ValueError("Custom URL sources do not accept a platform key")
+            self.adapter_key, self.url = resolve_custom_source(self.url, self.adapter_key)
+        else:
+            if not self.platform_key:
+                raise ValueError("Platform sources require a platform key")
+            if self.url is not None:
+                raise ValueError("Platform sources do not accept a user URL")
+            platform = SEARCH_PLATFORMS.get(self.platform_key)
+            if platform is None:
+                raise ValueError("Unsupported search platform")
+            if platform.availability != "AVAILABLE":
+                raise ValueError("Search platform is not currently available")
+            self.adapter_key = platform.adapter_key
         return self
 
 
@@ -45,12 +58,13 @@ class WatchSourceRead(BaseModel):
 
     id: str
     source_kind: str
+    platform_key: str | None
     adapter_key: str
     url: str | None
 
 
 class WatchCreate(BaseModel):
-    name: str = Field(min_length=1, max_length=120)
+    name: str | None = Field(default=None, max_length=120)
     target_terms: list[str] = Field(min_length=1, max_length=30)
     required_terms: list[str] = Field(default_factory=list, max_length=30)
     excluded_terms: list[str] = Field(default_factory=list, max_length=30)
@@ -77,12 +91,28 @@ class WatchCreate(BaseModel):
                 seen.add(key)
         return normalized
 
+    @field_validator("name")
+    @classmethod
+    def normalize_name(cls, value: str | None) -> str | None:
+        normalized = " ".join((value or "").split())
+        return normalized or None
+
     @field_validator("posting_age_days")
     @classmethod
     def validate_posting_age(cls, value: int | None) -> int | None:
         if value not in {3, 7, 14, 30, None}:
             raise ValueError("posting_age_days must be 3, 7, 14, 30, or null")
         return value
+
+    @model_validator(mode="after")
+    def validate_source_limits(self) -> "WatchCreate":
+        platform_count = sum(source.source_kind == "PLATFORM" for source in self.sources)
+        custom_count = sum(source.source_kind == "CUSTOM_URL" for source in self.sources)
+        if platform_count > 3:
+            raise ValueError("A Watch can contain up to 3 search platforms")
+        if custom_count > 2:
+            raise ValueError("A Watch can contain up to 2 custom URLs")
+        return self
 
 
 class WatchRead(BaseModel):

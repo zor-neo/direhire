@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 
@@ -10,10 +11,10 @@ from sqlalchemy.orm import Session
 from direhire.config import Settings
 from direhire.errors import AppError
 from direhire.models import SharedSourceFetch, WatchSource, utcnow
-from direhire.sources.contracts import DiscoveredJob, SourceAdapter
+from direhire.sources.contracts import DiscoveredJob, SearchRequest, SourceAdapter
 from direhire.sources.validation import normalize_public_url
 
-ContentProvider = Callable[[WatchSource], str]
+ContentProvider = Callable[[WatchSource, SearchRequest | None], str]
 
 
 class SharedFetchPending(AppError):
@@ -37,11 +38,24 @@ class SourceFetchCoalescer:
         run_id: str,
         source: WatchSource,
         adapter: SourceAdapter,
+        request: SearchRequest | None,
         content_provider: ContentProvider,
     ) -> list[DiscoveredJob]:
         now = datetime.now(UTC)
-        normalized = normalize_public_url(source.url) if source.url else source.source_key
-        key = hashlib.sha256(f"{adapter.key}|{normalized}".encode()).hexdigest()
+        normalized = (
+            normalize_public_url(request.url)
+            if request is not None
+            else normalize_public_url(source.url)
+            if source.url
+            else source.source_key
+        )
+        request_material = ""
+        if request is not None:
+            request_material = json.dumps(request.json_body, sort_keys=True, separators=(",", ":"))
+        method = request.method if request else "GET"
+        key = hashlib.sha256(
+            f"{adapter.key}|{method}|{normalized}|{request_material}".encode()
+        ).hexdigest()
         shared = self.session.get(SharedSourceFetch, key)
         if shared is not None:
             result_expires = self._aware(shared.result_expires_at)
@@ -89,7 +103,7 @@ class SourceFetchCoalescer:
             shared.updated_at = utcnow()
             self.session.commit()
         try:
-            discovered = adapter.discover_jobs(content_provider(source), source.url)
+            discovered = adapter.discover_jobs(content_provider(source, request), source.url)
         except Exception as exc:
             shared = self.session.get(SharedSourceFetch, key)
             if shared is not None:

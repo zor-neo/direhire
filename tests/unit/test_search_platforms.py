@@ -1,5 +1,6 @@
 from direhire.sources.platforms import (
     SEARCH_PLATFORMS,
+    available_platforms,
     platform_as_dict,
     platforms_for_regions,
     resolve_location_regions,
@@ -11,6 +12,8 @@ def test_search_platform_registry_keys() -> None:
     assert "jobsdb" in SEARCH_PLATFORMS
     assert "jobthai" in SEARCH_PLATFORMS
     assert SEARCH_PLATFORMS["jobstreet"].adapter_key == "seek_search"
+    assert SEARCH_PLATFORMS["jobstreet"].availability == "PAUSED"
+    assert SEARCH_PLATFORMS["jobstreet"].search_capable is True
 
 
 def test_resolve_location_regions() -> None:
@@ -33,3 +36,7 @@ def test_platform_as_dict() -> None:
     assert data["key"] == "jobstreet"
     assert isinstance(data["regions"], list)
     assert "MY" in data["regions"]
+
+
+def test_only_operational_platforms_are_available() -> None:
+    assert [platform.key for platform in available_platforms()] == ["jobthai"]
