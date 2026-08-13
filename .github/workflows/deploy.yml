@@ -49,6 +49,12 @@ jobs:
           registry="${AWS_ACCOUNT_ID}.dkr.ecr.ap-southeast-1.amazonaws.com"
           aws ecr get-login-password | docker login --username AWS --password-stdin "$registry"
           for image in runtime browser-worker database-backup; do
+            if aws ecr describe-images \
+              --repository-name "direhire/$image" \
+              --image-ids imageTag="${GITHUB_SHA}" >/dev/null 2>&1; then
+              echo "Reusing immutable direhire/$image:${GITHUB_SHA}"
+              continue
+            fi
             case "$image" in
               runtime) dockerfile=Dockerfile ;;
               browser-worker) dockerfile=Dockerfile.browser ;;
