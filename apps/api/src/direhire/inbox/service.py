@@ -92,6 +92,7 @@ class InboxService:
 
     def retry_analysis(self, user_job_id: str, user_id: str) -> dict[str, object]:
         import uuid
+
         from direhire.ai.service import retry_public_job_analysis
         from direhire.errors import AppError
 

@@ -205,16 +205,24 @@ export default function InboxPage() {
                     {item.analysis_status !== "SUCCEEDED" && (
                       <button
                         type="button"
-                        className="button secondary"
                         style={{
-                          fontSize: "0.75rem",
-                          padding: "0.15rem 0.5rem",
-                          borderRadius: "4px",
-                          lineHeight: 1.2,
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: "0.3rem",
+                          fontSize: "0.8rem",
+                          fontWeight: 600,
+                          padding: "0.2rem 0.65rem",
+                          borderRadius: "6px",
+                          border: "1px solid var(--line-strong)",
+                          background: "var(--card)",
+                          color: "var(--ink)",
+                          cursor: "pointer",
+                          boxShadow: "var(--shadow-sm)",
                         }}
                         onClick={() => void retryAnalysis(item)}
+                        title="Retry structured AI job analysis"
                       >
-                        ↻ Retry analysis
+                        <span>🔄</span> Retry analysis
                       </button>
                     )}
                   </div>
