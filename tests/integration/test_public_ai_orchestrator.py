@@ -32,37 +32,74 @@ class FakeProvider:
 def valid_content() -> str:
     content = JobDemandProfileContent(
         role_summary="Build and operate backend services.",
-        role_family="Software Engineering",
-        normalized_occupation="Backend Engineer",
-        seniority="MID",
-        responsibility_areas=[
-            {"value": "API development", "evidence": "Build Python APIs", "confidence": 0.95}
+        role_reality={
+            "headline": "Backend Engineer building Python APIs",
+            "primary_archetype": "BACKEND_DEVELOPER",
+            "primary_occupation": "Backend Engineer",
+            "secondary_occupations": [],
+            "title_alignment": "ACCURATE",
+            "primary_mission": "Build robust Python REST APIs",
+            "breadth": "SPECIALIZED",
+        },
+        seniority={
+            "assessment": "MID",
+            "explicit_min_years": 3.0,
+            "explicit_max_years": 5.0,
+            "interpretation_confidence": "HIGH",
+            "reason": "Requires 3-5 years Python experience",
+        },
+        demand_clusters=[
+            {
+                "name": "Python API Development",
+                "priority": "CORE",
+                "reason": "Core job duty",
+                "evidence": "Build Python APIs",
+                "evidence_strength": "EXPLICIT",
+            }
         ],
         competencies=[
             {
                 "canonical_id": "python",
                 "display_name": "Python",
-                "proficiency_demand": 4,
-                "importance": 3,
+                "category": "TECHNICAL",
+                "priority": "CORE",
                 "evidence": "Strong Python required",
-                "confidence": 0.98,
+                "evidence_strength": "EXPLICIT",
             }
         ],
-        languages=[],
-        education=[],
-        experience=[],
-        credentials_licenses=[],
-        schedule_availability=[],
-        work_conditions=[],
-        employment_type="Full-time",
-        work_arrangement="Remote within Thailand",
+        responsibility_clusters=[
+            {
+                "value": "API Development",
+                "evidence": "Build Python APIs",
+                "evidence_strength": "EXPLICIT",
+                "interpretation_confidence": "HIGH",
+            }
+        ],
+        requirements=[
+            {
+                "category": "CAPABILITY",
+                "title": "Python REST API development",
+                "evidence": "Build Python APIs",
+                "evidence_strength": "EXPLICIT",
+            }
+        ],
+        job_constraints=[],
+        work_location_summary={
+            "value": "Thailand",
+            "evidence": "Thailand",
+            "evidence_strength": "EXPLICIT",
+            "interpretation_confidence": "HIGH",
+        },
+        work_arrangement_summary={
+            "value": "Remote",
+            "evidence": "Remote within Thailand",
+            "evidence_strength": "EXPLICIT",
+            "interpretation_confidence": "HIGH",
+        },
         remote_eligibility="LOCATION_RESTRICTED",
-        hard_requirements=[],
-        preferred_requirements=[],
-        possible_blockers=[],
         real_work_scenarios=["Operate production APIs"],
         contradictions=[],
-        interpretation_confidence=0.9,
+        overall_confidence="HIGH",
     )
     return content.model_dump_json()
 

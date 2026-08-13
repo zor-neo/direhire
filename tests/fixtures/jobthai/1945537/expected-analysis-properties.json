@@ -1,0 +1,42 @@
+{
+  "role_reality": {
+    "primary_archetype": "HANDS_ON_IT_GENERALIST",
+    "title_alignment": "UNDERSTATES_SCOPE",
+    "primary_mission_contains": [
+      "support",
+      "network",
+      "hardware",
+      "user"
+    ],
+    "breadth": "BROAD"
+  },
+  "seniority": {
+    "assessment": "EARLY_CAREER_TO_MID",
+    "explicit_min_age": 22,
+    "explicit_max_age": 30,
+    "explicit_min_education": "Bachelor's Degree"
+  },
+  "demand_clusters": [
+    {
+      "name": "End-user and Windows support",
+      "priority": "CORE"
+    },
+    {
+      "name": "Network and cabling infrastructure",
+      "priority": "CORE"
+    },
+    {
+      "name": "IT equipment installation and maintenance",
+      "priority": "IMPORTANT"
+    },
+    {
+      "name": "Retail POS and ERP system understanding",
+      "priority": "PREFERRED"
+    }
+  ],
+  "work_location": {
+    "raw": "Wang Thonglang, Bangkok",
+    "evidence_strength": "EXPLICIT"
+  },
+  "remote_eligibility": "UNCLEAR"
+}

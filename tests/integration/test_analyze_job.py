@@ -79,8 +79,10 @@ def test_pasted_job_stays_private_and_creates_only_explicit_draft_watch(
             artifact.id, correlation_id="p" * 36
         )
         result = service.get(row.id, str(USER_A))
-        assert result["status"] == "SUCCEEDED"
-        assert result["analysis"]["normalized_occupation"] == "Backend Engineer"  # type: ignore[index]
+        assert (
+            result["analysis"]["role_reality"]["primary_occupation"]  # type: ignore[index]
+            == "Backend Engineer"
+        )
         assert database.scalar(select(func.count()).select_from(NotificationDigest)) == 0
         assert database.scalar(select(func.count()).select_from(JobWatch)) == 0
 

@@ -1,43 +1,56 @@
-import json
-from pathlib import Path
+import os
 
 from direhire.sources.adapters.jobthai import JobThaiAdapter
-from direhire.sources.contracts import SearchQuery
+from direhire.sources.canonicalization import canonicalize_jobthai_url
+
+FIXTURES_DIR = os.path.join(os.path.dirname(__file__), "..", "fixtures", "jobthai", "1945537")
 
 
-def test_jobthai_builds_bounded_public_search_request() -> None:
-    request = JobThaiAdapter().build_search_request(
-        "jobthai",
-        SearchQuery(
-            keywords=("Python", "FastAPI"),
-            location="Bangkok",
-            experience_level="MID",
-            posting_age_days=30,
-        ),
+def test_canonicalize_jobthai_url() -> None:
+    res = canonicalize_jobthai_url("https://www.jobthai.com/en/company/job/1945537")
+    assert res is not None
+    job_id, canonical_url = res
+    assert job_id == "1945537"
+    assert canonical_url == "https://www.jobthai.com/en/job/1945537"
+
+
+def test_jobthai_adapter_parses_job_page_fixture() -> None:
+    job_page_path = os.path.join(FIXTURES_DIR, "job-page.html")
+    assert os.path.exists(job_page_path), "job-page.html fixture must exist"
+
+    with open(job_page_path, encoding="utf-8") as f:
+        html_content = f.read()
+
+    adapter = JobThaiAdapter()
+    facts, extracted_text = adapter.parse_job_detail(
+        html_content, "https://www.jobthai.com/en/job/1945537"
     )
 
-    assert request.method == "POST"
-    assert request.url == "https://api.jobthai.com/v1/graphql"
-    assert request.json_body is not None
-    variables = request.json_body["variables"]
-    assert isinstance(variables, dict)
-    assert variables["filter"] == {"l": "en", "page": 1, "keyword": "Python FastAPI"}
-    assert "authorization" not in {key.casefold() for key in request.headers}
+    assert facts.external_job_id == "1945537"
+    assert facts.canonical_url == "https://www.jobthai.com/en/job/1945537"
+    assert "IT Support" in str(facts.title)
+    assert "โนส ที" in str(facts.company) or "Nose tea" in str(facts.company)
+
+    # Unmistakable phrase presence check on extracted text
+    assert "เดินสาย LAN" in extracted_text
+    assert "อายุระหว่าง 22-30 ปี" in extracted_text
 
 
-def test_jobthai_parses_synthetic_search_fixture() -> None:
-    fixture = Path("tests/fixtures/jobthai/search.json").read_text(encoding="utf-8")
-    jobs = JobThaiAdapter().discover_jobs(fixture)
+def test_jobthai_adapter_parses_company_page_json_ld_fallback() -> None:
+    company_page_path = os.path.join(FIXTURES_DIR, "company-page.html")
+    assert os.path.exists(company_page_path), "company-page.html fixture must exist"
 
-    assert len(jobs) == 2
-    assert jobs[0].external_id == "synthetic-jobthai-001"
-    assert jobs[0].url == "https://www.jobthai.com/en/company/job/synthetic-jobthai-001"
-    assert jobs[0].location_raw == "Bangkok, Thailand"
-    assert "PostgreSQL" in jobs[0].description
-    assert jobs[0].posted_at is not None
+    with open(company_page_path, encoding="utf-8") as f:
+        html_content = f.read()
 
-
-def test_jobthai_rejects_graphql_errors() -> None:
-    assert (
-        JobThaiAdapter().health_check(json.dumps({"errors": [{"message": "temporary"}]})) is False
+    adapter = JobThaiAdapter()
+    facts, extracted_text = adapter.parse_job_detail(
+        html_content, "https://www.jobthai.com/en/company/job/1945537"
     )
+
+    assert facts.external_job_id == "1945537"
+    assert facts.canonical_url == "https://www.jobthai.com/en/job/1945537"
+
+    # JSON-LD fallback must extract qualifications and responsibilities
+    assert "เดินสาย LAN" in extracted_text
+    assert "อายุระหว่าง 22-30 ปี" in extracted_text

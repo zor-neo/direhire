@@ -178,8 +178,15 @@ class AnalyzeJobService:
         content = self._content(row)
         if content is None:
             raise AppError("ANALYSIS_NOT_READY", "The analysis is not ready.", 409)
+        role_reality = (
+            content.get("role_reality", {}) if isinstance(content.get("role_reality"), dict) else {}
+        )
         target = str(
-            content.get("normalized_occupation") or content.get("role_family") or ""
+            role_reality.get("primary_occupation")
+            or role_reality.get("primary_archetype")
+            or content.get("normalized_occupation")
+            or content.get("role_family")
+            or ""
         ).strip()
         if not target:
             raise AppError(

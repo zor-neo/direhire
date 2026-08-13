@@ -12,6 +12,7 @@ from direhire.ai.contracts import (
     JobDemandProfileContent,
     JobDemandProfileDocument,
 )
+from direhire.ai.job_demand_validator import validate_job_demand_profile
 from direhire.ai.providers import ProviderFailure, ProviderResponse, StructuredProvider
 from direhire.ai.sanitizer import sanitize_public_job_description
 from direhire.errors import AppError
@@ -121,7 +122,12 @@ class AiOrchestrator:
             self._meter_response(operation, response, policy)
             try:
                 content = JobDemandProfileContent.model_validate_json(response.text)
-                break
+                semantic_errors = validate_job_demand_profile(content, context)
+                if semantic_errors:
+                    content = None
+                    prompt = self._prompt(context, repair=True)
+                else:
+                    break
             except ValidationError:
                 prompt = self._prompt(context, repair=True)
         if response is None or content is None:
@@ -171,17 +177,23 @@ class AiOrchestrator:
     @staticmethod
     def _prompt(context: str, *, repair: bool = False) -> str:
         repair_instruction = (
-            "Your previous attempt did not validate. Return every required field with the exact "
-            "schema and no additional fields. "
+            "Your previous attempt did not validate schema rules. Ensure every required JSON field "
+            "conforms strictly to the requested schema. "
             if repair
             else ""
         )
         return (
-            "Analyze the complete public job description holistically, then extract evidence and "
-            "reconcile contradictions. Return only the requested JSON object. Never invent a fact. "
-            "Use UNCLEAR or null where evidence is absent. Remote does not imply worldwide, and "
-            "absence of sponsorship language is unclear. Evidence must be a concise passage or "
-            f"faithful paraphrase from the supplied job text. {repair_instruction}\n\n{context}"
+            "Perform a holistic, operational intelligence analysis of this job posting. "
+            "Do not merely extract or rename bullet points.\n"
+            "1. ROLE REALITY: Determine actual operational archetype (HANDS_ON_IT_GENERALIST), "
+            "assess whether title aligns with or understates scope, and define primary mission.\n"
+            "2. DEMAND HIERARCHY: Prioritize demand into CORE, IMPORTANT, SUPPORTING, PREFERRED.\n"
+            "3. SENIORITY RANGE: Evaluate experience bounds (e.g. 1-3 years) with rationale.\n"
+            "4. EVIDENCE TRUTHFULNESS: The 'evidence' field MUST preserve exact quotes in original "
+            "language (e.g. Thai), while synthesized titles and reasoning are in English.\n"
+            "5. CONSTRAINTS: Extract job-level constraints without user-specific blockers.\n"
+            "6. SCENARIOS: Synthesize 2-3 realistic operational scenarios.\n"
+            f"{repair_instruction}\n\n{context}"
         )
 
     @staticmethod

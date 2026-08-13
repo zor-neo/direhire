@@ -1182,10 +1182,7 @@ export interface components {
         };
         /** AnalyzeJobRead */
         AnalyzeJobRead: {
-            /** Analysis */
-            analysis: {
-                [key: string]: unknown;
-            } | null;
+            analysis?: components["schemas"]["JobDemandProfileContent"] | null;
             /**
              * Created At
              * Format: date-time
@@ -1345,6 +1342,30 @@ export interface components {
             /** Id */
             id: string;
         };
+        /** CompetencyDemandV2 */
+        CompetencyDemandV2: {
+            /** Canonical Id */
+            canonical_id?: string | null;
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "TECHNICAL" | "OPERATIONAL" | "PROFESSIONAL" | "TOOLS";
+            /** Display Name */
+            display_name: string;
+            /** Evidence */
+            evidence: string;
+            /**
+             * Evidence Strength
+             * @enum {string}
+             */
+            evidence_strength: "EXPLICIT" | "STRONGLY_IMPLIED" | "INFERRED";
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "CORE" | "IMPORTANT" | "SUPPORTING" | "PREFERRED";
+        };
         /** CvRead */
         CvRead: {
             /** Id */
@@ -1411,6 +1432,28 @@ export interface components {
              * @enum {string}
              */
             scope: "CAREER_DATA" | "ACCOUNT";
+        };
+        /** DemandCluster */
+        DemandCluster: {
+            /**
+             * Evidence
+             * @description Exact quote in original language
+             */
+            evidence: string;
+            /**
+             * Evidence Strength
+             * @enum {string}
+             */
+            evidence_strength: "EXPLICIT" | "STRONGLY_IMPLIED" | "INFERRED";
+            /** Name */
+            name: string;
+            /**
+             * Priority
+             * @enum {string}
+             */
+            priority: "CORE" | "IMPORTANT" | "SUPPORTING" | "PREFERRED";
+            /** Reason */
+            reason: string;
         };
         /** DocumentDownloadRead */
         DocumentDownloadRead: {
@@ -1505,6 +1548,29 @@ export interface components {
             enabled: boolean;
             /** Limit Value */
             limit_value: number;
+        };
+        /** EvidenceItemV2 */
+        EvidenceItemV2: {
+            /**
+             * Evidence
+             * @description Exact quote/paraphrase in original language (e.g. Thai)
+             */
+            evidence: string;
+            /**
+             * Evidence Strength
+             * @enum {string}
+             */
+            evidence_strength: "EXPLICIT" | "STRONGLY_IMPLIED" | "INFERRED";
+            /**
+             * Interpretation Confidence
+             * @enum {string}
+             */
+            interpretation_confidence: "HIGH" | "MEDIUM" | "LOW";
+            /**
+             * Value
+             * @description English synthesis/value
+             */
+            value: string;
         };
         /** ExperienceEntry */
         ExperienceEntry: {
@@ -1654,6 +1720,54 @@ export interface components {
             updated_at: string;
             /** Went Well */
             went_well?: string | null;
+        };
+        /** JobConstraint */
+        JobConstraint: {
+            /**
+             * Constraint Type
+             * @enum {string}
+             */
+            constraint_type: "LOCATION" | "SCHEDULE" | "WORK_ARRANGEMENT" | "TRAVEL" | "LICENSE" | "OTHER";
+            /** Description */
+            description: string;
+            /**
+             * Evidence Strength
+             * @enum {string}
+             */
+            evidence_strength: "EXPLICIT" | "STRONGLY_IMPLIED" | "INFERRED";
+        };
+        /** JobDemandProfileContent */
+        JobDemandProfileContent: {
+            /** Competencies */
+            competencies: components["schemas"]["CompetencyDemandV2"][];
+            /** Contradictions */
+            contradictions: string[];
+            /** Demand Clusters */
+            demand_clusters: components["schemas"]["DemandCluster"][];
+            /** Job Constraints */
+            job_constraints: components["schemas"]["JobConstraint"][];
+            /**
+             * Overall Confidence
+             * @enum {string}
+             */
+            overall_confidence: "HIGH" | "MEDIUM" | "LOW";
+            /** Real Work Scenarios */
+            real_work_scenarios: string[];
+            /**
+             * Remote Eligibility
+             * @enum {string}
+             */
+            remote_eligibility: "NOT_REMOTE" | "LOCATION_RESTRICTED" | "WORLDWIDE" | "UNCLEAR";
+            /** Requirements */
+            requirements: components["schemas"]["RequirementCategory"][];
+            /** Responsibility Clusters */
+            responsibility_clusters: components["schemas"]["EvidenceItemV2"][];
+            role_reality: components["schemas"]["RoleReality"];
+            /** Role Summary */
+            role_summary: string;
+            seniority: components["schemas"]["SeniorityAssessment"];
+            work_arrangement_summary: components["schemas"]["EvidenceItemV2"];
+            work_location_summary: components["schemas"]["EvidenceItemV2"];
         };
         /** MatchedWatchRead */
         MatchedWatchRead: {
@@ -1892,6 +2006,52 @@ export interface components {
              */
             reminder_type: "APPLICATION" | "INTERVIEW";
         };
+        /** RequirementCategory */
+        RequirementCategory: {
+            /**
+             * Category
+             * @enum {string}
+             */
+            category: "ELIGIBILITY" | "CAPABILITY" | "PROFESSIONAL" | "PREFERRED";
+            /** Evidence */
+            evidence: string;
+            /**
+             * Evidence Strength
+             * @enum {string}
+             */
+            evidence_strength: "EXPLICIT" | "STRONGLY_IMPLIED" | "INFERRED";
+            /** Title */
+            title: string;
+        };
+        /** RoleReality */
+        RoleReality: {
+            /**
+             * Breadth
+             * @enum {string}
+             */
+            breadth: "SPECIALIZED" | "MODERATE" | "BROAD";
+            /**
+             * Headline
+             * @description One-sentence summary of actual operational reality
+             */
+            headline: string;
+            /**
+             * Primary Archetype
+             * @description Operational role archetype, e.g. HANDS_ON_IT_GENERALIST
+             */
+            primary_archetype: string;
+            /** Primary Mission */
+            primary_mission: string;
+            /** Primary Occupation */
+            primary_occupation: string;
+            /** Secondary Occupations */
+            secondary_occupations?: string[];
+            /**
+             * Title Alignment
+             * @enum {string}
+             */
+            title_alignment: "ACCURATE" | "UNDERSTATES_SCOPE" | "OVERSTATES_SCOPE" | "MISLEADING";
+        };
         /** ScheduleRead */
         ScheduleRead: {
             /** Enabled */
@@ -1923,6 +2083,25 @@ export interface components {
             local_time: string;
             /** Timezone */
             timezone: string;
+        };
+        /** SeniorityAssessment */
+        SeniorityAssessment: {
+            /**
+             * Assessment
+             * @enum {string}
+             */
+            assessment: "ENTRY" | "EARLY_CAREER_TO_MID" | "MID" | "MID_TO_SENIOR" | "SENIOR" | "LEAD" | "EXECUTIVE" | "UNCLEAR";
+            /** Explicit Max Years */
+            explicit_max_years?: number | null;
+            /** Explicit Min Years */
+            explicit_min_years?: number | null;
+            /**
+             * Interpretation Confidence
+             * @enum {string}
+             */
+            interpretation_confidence: "HIGH" | "MEDIUM" | "LOW";
+            /** Reason */
+            reason: string;
         };
         /** SessionRead */
         SessionRead: {

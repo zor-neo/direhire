@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, Request, Response, status
 from pydantic import BaseModel, Field, model_validator
 from sqlalchemy.orm import Session
 
+from direhire.ai.contracts import JobDemandProfileContent
 from direhire.analyze.service import AnalyzeJobService
 from direhire.auth import CurrentUser, current_user
 from direhire.db import get_session
@@ -43,7 +44,7 @@ class AnalyzeJobRead(BaseModel):
     normalized_url: str | None
     job_id: str | None
     status: str
-    analysis: dict[str, object] | None
+    analysis: JobDemandProfileContent | None = None
     similar_openings: list[SimilarOpening]
     saved: bool
     error_code: str | None

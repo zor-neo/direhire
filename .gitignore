@@ -16,3 +16,8 @@ htmlcov/
 *.tfstate.*
 .migration-*.db
 .tmp-doc-qa/
+*.tfplan
+*.tfvars
+response.json
+
+

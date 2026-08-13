@@ -24,6 +24,20 @@ class DiscoveredJob:
 
 
 @dataclass(frozen=True, slots=True)
+class JobListingFacts:
+    external_job_id: str | None
+    submitted_url: str
+    canonical_url: str
+    title: str
+    company: str
+    location_raw: str
+    salary_raw: str
+    vacancies: str | None = None
+    posting_date: str | None = None
+    benefits_raw: str | None = None
+
+
+@dataclass(frozen=True, slots=True)
 class SearchQuery:
     keywords: tuple[str, ...]
     location: str | None

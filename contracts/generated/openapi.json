@@ -30,14 +30,12 @@
           "analysis": {
             "anyOf": [
               {
-                "additionalProperties": true,
-                "type": "object"
+                "$ref": "#/components/schemas/JobDemandProfileContent"
               },
               {
                 "type": "null"
               }
-            ],
-            "title": "Analysis"
+            ]
           },
           "created_at": {
             "format": "date-time",
@@ -112,7 +110,6 @@
           "normalized_url",
           "job_id",
           "status",
-          "analysis",
           "similar_openings",
           "saved",
           "error_code",
@@ -556,6 +553,73 @@
         "title": "CatalogItemRead",
         "type": "object"
       },
+      "CompetencyDemandV2": {
+        "additionalProperties": false,
+        "properties": {
+          "canonical_id": {
+            "anyOf": [
+              {
+                "maxLength": 100,
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Canonical Id"
+          },
+          "category": {
+            "enum": [
+              "TECHNICAL",
+              "OPERATIONAL",
+              "PROFESSIONAL",
+              "TOOLS"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "display_name": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Display Name",
+            "type": "string"
+          },
+          "evidence": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Evidence",
+            "type": "string"
+          },
+          "evidence_strength": {
+            "enum": [
+              "EXPLICIT",
+              "STRONGLY_IMPLIED",
+              "INFERRED"
+            ],
+            "title": "Evidence Strength",
+            "type": "string"
+          },
+          "priority": {
+            "enum": [
+              "CORE",
+              "IMPORTANT",
+              "SUPPORTING",
+              "PREFERRED"
+            ],
+            "title": "Priority",
+            "type": "string"
+          }
+        },
+        "required": [
+          "display_name",
+          "category",
+          "priority",
+          "evidence",
+          "evidence_strength"
+        ],
+        "title": "CompetencyDemandV2",
+        "type": "object"
+      },
       "CvRead": {
         "properties": {
           "id": {
@@ -728,6 +792,58 @@
           "confirmation"
         ],
         "title": "DeletionRequest",
+        "type": "object"
+      },
+      "DemandCluster": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "description": "Exact quote in original language",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Evidence",
+            "type": "string"
+          },
+          "evidence_strength": {
+            "enum": [
+              "EXPLICIT",
+              "STRONGLY_IMPLIED",
+              "INFERRED"
+            ],
+            "title": "Evidence Strength",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Name",
+            "type": "string"
+          },
+          "priority": {
+            "enum": [
+              "CORE",
+              "IMPORTANT",
+              "SUPPORTING",
+              "PREFERRED"
+            ],
+            "title": "Priority",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 400,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "name",
+          "priority",
+          "reason",
+          "evidence",
+          "evidence_strength"
+        ],
+        "title": "DemandCluster",
         "type": "object"
       },
       "DocumentDownloadRead": {
@@ -987,6 +1103,51 @@
           "limit_value"
         ],
         "title": "EntitlementUpdate",
+        "type": "object"
+      },
+      "EvidenceItemV2": {
+        "additionalProperties": false,
+        "properties": {
+          "evidence": {
+            "description": "Exact quote/paraphrase in original language (e.g. Thai)",
+            "maxLength": 600,
+            "minLength": 1,
+            "title": "Evidence",
+            "type": "string"
+          },
+          "evidence_strength": {
+            "enum": [
+              "EXPLICIT",
+              "STRONGLY_IMPLIED",
+              "INFERRED"
+            ],
+            "title": "Evidence Strength",
+            "type": "string"
+          },
+          "interpretation_confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Interpretation Confidence",
+            "type": "string"
+          },
+          "value": {
+            "description": "English synthesis/value",
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Value",
+            "type": "string"
+          }
+        },
+        "required": [
+          "value",
+          "evidence",
+          "evidence_strength",
+          "interpretation_confidence"
+        ],
+        "title": "EvidenceItemV2",
         "type": "object"
       },
       "ExperienceEntry": {
@@ -1443,6 +1604,163 @@
           "updated_at"
         ],
         "title": "InterviewRead",
+        "type": "object"
+      },
+      "JobConstraint": {
+        "additionalProperties": false,
+        "properties": {
+          "constraint_type": {
+            "enum": [
+              "LOCATION",
+              "SCHEDULE",
+              "WORK_ARRANGEMENT",
+              "TRAVEL",
+              "LICENSE",
+              "OTHER"
+            ],
+            "title": "Constraint Type",
+            "type": "string"
+          },
+          "description": {
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Description",
+            "type": "string"
+          },
+          "evidence_strength": {
+            "enum": [
+              "EXPLICIT",
+              "STRONGLY_IMPLIED",
+              "INFERRED"
+            ],
+            "title": "Evidence Strength",
+            "type": "string"
+          }
+        },
+        "required": [
+          "constraint_type",
+          "description",
+          "evidence_strength"
+        ],
+        "title": "JobConstraint",
+        "type": "object"
+      },
+      "JobDemandProfileContent": {
+        "additionalProperties": false,
+        "properties": {
+          "competencies": {
+            "items": {
+              "$ref": "#/components/schemas/CompetencyDemandV2"
+            },
+            "maxItems": 40,
+            "title": "Competencies",
+            "type": "array"
+          },
+          "contradictions": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "title": "Contradictions",
+            "type": "array"
+          },
+          "demand_clusters": {
+            "items": {
+              "$ref": "#/components/schemas/DemandCluster"
+            },
+            "maxItems": 20,
+            "minItems": 1,
+            "title": "Demand Clusters",
+            "type": "array"
+          },
+          "job_constraints": {
+            "items": {
+              "$ref": "#/components/schemas/JobConstraint"
+            },
+            "maxItems": 20,
+            "title": "Job Constraints",
+            "type": "array"
+          },
+          "overall_confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Overall Confidence",
+            "type": "string"
+          },
+          "real_work_scenarios": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 12,
+            "minItems": 1,
+            "title": "Real Work Scenarios",
+            "type": "array"
+          },
+          "remote_eligibility": {
+            "enum": [
+              "NOT_REMOTE",
+              "LOCATION_RESTRICTED",
+              "WORLDWIDE",
+              "UNCLEAR"
+            ],
+            "title": "Remote Eligibility",
+            "type": "string"
+          },
+          "requirements": {
+            "items": {
+              "$ref": "#/components/schemas/RequirementCategory"
+            },
+            "maxItems": 30,
+            "title": "Requirements",
+            "type": "array"
+          },
+          "responsibility_clusters": {
+            "items": {
+              "$ref": "#/components/schemas/EvidenceItemV2"
+            },
+            "maxItems": 20,
+            "title": "Responsibility Clusters",
+            "type": "array"
+          },
+          "role_reality": {
+            "$ref": "#/components/schemas/RoleReality"
+          },
+          "role_summary": {
+            "maxLength": 1200,
+            "minLength": 1,
+            "title": "Role Summary",
+            "type": "string"
+          },
+          "seniority": {
+            "$ref": "#/components/schemas/SeniorityAssessment"
+          },
+          "work_arrangement_summary": {
+            "$ref": "#/components/schemas/EvidenceItemV2"
+          },
+          "work_location_summary": {
+            "$ref": "#/components/schemas/EvidenceItemV2"
+          }
+        },
+        "required": [
+          "role_summary",
+          "role_reality",
+          "seniority",
+          "demand_clusters",
+          "competencies",
+          "responsibility_clusters",
+          "requirements",
+          "job_constraints",
+          "work_location_summary",
+          "work_arrangement_summary",
+          "remote_eligibility",
+          "real_work_scenarios",
+          "contradictions",
+          "overall_confidence"
+        ],
+        "title": "JobDemandProfileContent",
         "type": "object"
       },
       "MatchedWatchRead": {
@@ -2083,6 +2401,118 @@
         "title": "ReminderRead",
         "type": "object"
       },
+      "RequirementCategory": {
+        "additionalProperties": false,
+        "properties": {
+          "category": {
+            "enum": [
+              "ELIGIBILITY",
+              "CAPABILITY",
+              "PROFESSIONAL",
+              "PREFERRED"
+            ],
+            "title": "Category",
+            "type": "string"
+          },
+          "evidence": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Evidence",
+            "type": "string"
+          },
+          "evidence_strength": {
+            "enum": [
+              "EXPLICIT",
+              "STRONGLY_IMPLIED",
+              "INFERRED"
+            ],
+            "title": "Evidence Strength",
+            "type": "string"
+          },
+          "title": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Title",
+            "type": "string"
+          }
+        },
+        "required": [
+          "category",
+          "title",
+          "evidence",
+          "evidence_strength"
+        ],
+        "title": "RequirementCategory",
+        "type": "object"
+      },
+      "RoleReality": {
+        "additionalProperties": false,
+        "properties": {
+          "breadth": {
+            "enum": [
+              "SPECIALIZED",
+              "MODERATE",
+              "BROAD"
+            ],
+            "title": "Breadth",
+            "type": "string"
+          },
+          "headline": {
+            "description": "One-sentence summary of actual operational reality",
+            "maxLength": 300,
+            "minLength": 1,
+            "title": "Headline",
+            "type": "string"
+          },
+          "primary_archetype": {
+            "description": "Operational role archetype, e.g. HANDS_ON_IT_GENERALIST",
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Primary Archetype",
+            "type": "string"
+          },
+          "primary_mission": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Primary Mission",
+            "type": "string"
+          },
+          "primary_occupation": {
+            "maxLength": 160,
+            "minLength": 1,
+            "title": "Primary Occupation",
+            "type": "string"
+          },
+          "secondary_occupations": {
+            "items": {
+              "type": "string"
+            },
+            "maxItems": 10,
+            "title": "Secondary Occupations",
+            "type": "array"
+          },
+          "title_alignment": {
+            "enum": [
+              "ACCURATE",
+              "UNDERSTATES_SCOPE",
+              "OVERSTATES_SCOPE",
+              "MISLEADING"
+            ],
+            "title": "Title Alignment",
+            "type": "string"
+          }
+        },
+        "required": [
+          "headline",
+          "primary_archetype",
+          "primary_occupation",
+          "title_alignment",
+          "primary_mission",
+          "breadth"
+        ],
+        "title": "RoleReality",
+        "type": "object"
+      },
       "ScheduleRead": {
         "properties": {
           "enabled": {
@@ -2137,6 +2567,73 @@
           "local_time"
         ],
         "title": "ScheduleUpdate",
+        "type": "object"
+      },
+      "SeniorityAssessment": {
+        "additionalProperties": false,
+        "properties": {
+          "assessment": {
+            "enum": [
+              "ENTRY",
+              "EARLY_CAREER_TO_MID",
+              "MID",
+              "MID_TO_SENIOR",
+              "SENIOR",
+              "LEAD",
+              "EXECUTIVE",
+              "UNCLEAR"
+            ],
+            "title": "Assessment",
+            "type": "string"
+          },
+          "explicit_max_years": {
+            "anyOf": [
+              {
+                "maximum": 40.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicit Max Years"
+          },
+          "explicit_min_years": {
+            "anyOf": [
+              {
+                "maximum": 40.0,
+                "minimum": 0.0,
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Explicit Min Years"
+          },
+          "interpretation_confidence": {
+            "enum": [
+              "HIGH",
+              "MEDIUM",
+              "LOW"
+            ],
+            "title": "Interpretation Confidence",
+            "type": "string"
+          },
+          "reason": {
+            "maxLength": 500,
+            "minLength": 1,
+            "title": "Reason",
+            "type": "string"
+          }
+        },
+        "required": [
+          "assessment",
+          "interpretation_confidence",
+          "reason"
+        ],
+        "title": "SeniorityAssessment",
         "type": "object"
       },
       "SessionRead": {
