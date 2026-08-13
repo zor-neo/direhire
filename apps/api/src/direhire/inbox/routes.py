@@ -21,6 +21,7 @@ class InboxItemRead(BaseModel):
     title: str
     company: str
     location: str
+    source_url: str | None
     job_lifecycle: str
     status: InboxStatus
     created_at: datetime

@@ -120,7 +120,12 @@ class SourceFetchCoalescer:
         shared.owner_run_id = None
         shared.lease_expires_at = None
         shared.results = self._serialize(discovered)
-        shared.result_expires_at = now + timedelta(seconds=self.settings.public_fetch_cache_seconds)
+        cache_seconds = (
+            request.cache_seconds
+            if request is not None and request.cache_seconds is not None
+            else self.settings.public_fetch_cache_seconds
+        )
+        shared.result_expires_at = now + timedelta(seconds=cache_seconds)
         shared.error_code = None
         shared.updated_at = utcnow()
         self.session.commit()

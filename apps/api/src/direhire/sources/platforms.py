@@ -63,6 +63,17 @@ SEARCH_PLATFORMS: dict[str, SearchPlatform] = {
         logo_filename="jobthai.svg",
         description="Thailand's leading job platform",
     ),
+    "remotive": SearchPlatform(
+        key="remotive",
+        name="Remotive",
+        adapter_key="remotive",
+        regions=("GLOBAL",),
+        tier="A",
+        search_capable=True,
+        availability="AVAILABLE",
+        logo_filename="remotive.svg",
+        description="Remote roles worldwide, attributed to Remotive",
+    ),
     "glassdoor": SearchPlatform(
         key="glassdoor",
         name="Glassdoor",

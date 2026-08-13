@@ -1468,6 +1468,8 @@ export interface components {
             job_lifecycle: string;
             /** Location */
             location: string;
+            /** Source Url */
+            source_url: string | null;
             /**
              * Status
              * @enum {string}

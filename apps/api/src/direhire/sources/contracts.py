@@ -38,6 +38,7 @@ class SearchRequest:
     url: str
     headers: dict[str, str]
     json_body: dict[str, object] | None = None
+    cache_seconds: int | None = None
 
 
 class SourceAdapter(Protocol):

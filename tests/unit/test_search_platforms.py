@@ -11,6 +11,7 @@ def test_search_platform_registry_keys() -> None:
     assert "jobstreet" in SEARCH_PLATFORMS
     assert "jobsdb" in SEARCH_PLATFORMS
     assert "jobthai" in SEARCH_PLATFORMS
+    assert "remotive" in SEARCH_PLATFORMS
     assert SEARCH_PLATFORMS["jobstreet"].adapter_key == "seek_search"
     assert SEARCH_PLATFORMS["jobstreet"].availability == "PAUSED"
     assert SEARCH_PLATFORMS["jobstreet"].search_capable is True
@@ -39,4 +40,4 @@ def test_platform_as_dict() -> None:
 
 
 def test_only_operational_platforms_are_available() -> None:
-    assert [platform.key for platform in available_platforms()] == ["jobthai"]
+    assert [platform.key for platform in available_platforms()] == ["jobthai", "remotive"]

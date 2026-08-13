@@ -27,6 +27,7 @@ from direhire.sources.adapters.lever import LeverAdapter
 from direhire.sources.adapters.personio import PersonioAdapter
 from direhire.sources.adapters.pinpoint import PinpointAdapter
 from direhire.sources.adapters.recruitee import RecruiteeAdapter
+from direhire.sources.adapters.remotive import RemotiveAdapter
 from direhire.sources.adapters.synthetic_board import SyntheticBoardAdapter
 from direhire.sources.coalescing import SharedFetchPending, SourceFetchCoalescer
 from direhire.sources.contracts import SearchQuery, SearchRequest, SourceAdapter
@@ -51,6 +52,7 @@ class DiscoveryProcessor:
             PersonioAdapter.key: PersonioAdapter(),
             PinpointAdapter.key: PinpointAdapter(),
             JobThaiAdapter.key: JobThaiAdapter(),
+            RemotiveAdapter.key: RemotiveAdapter(),
         }
 
     def process(self, run_id: str) -> JobWatchRun:

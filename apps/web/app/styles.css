@@ -644,6 +644,7 @@ select {
   font-weight: 700;
 }
 .text-action:hover { color: var(--accent-dark); text-decoration: underline; text-underline-offset: 3px; }
+.source-link { display: inline-block; margin-right: 1rem; }
 
 .list-select {
   display: grid;
