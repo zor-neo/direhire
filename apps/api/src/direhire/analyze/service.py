@@ -52,19 +52,36 @@ class AnalyzeJobService:
             .where(JobVersion.source_url == normalized)
             .order_by(JobVersion.captured_at.desc())
         )
-        if (
-            existing is not None
-            and existing.demand_profile_id
-            and version is not None
-        ):
-            demand = self.session.get(JobDemandProfile, existing.demand_profile_id)
-            if demand is None or demand.schema_version != JOB_DEMAND_SCHEMA_VERSION:
+        if existing is not None:
+            status, _ = self._derived_status(existing)
+            if status == "SUCCEEDED":
+                return existing
+
+            # Override/re-queue prior failed or outdated analysis
+            if version is not None:
                 new_demand = queue_public_job_analysis(
                     self.session, version, correlation_id=correlation_id
                 )
+                existing.job_id = version.job_id
                 existing.demand_profile_id = new_demand.id
                 existing.status = "ANALYSIS_QUEUED"
-                self.session.commit()
+                existing.error_code = None
+                existing.updated_at = utcnow()
+            else:
+                existing.demand_profile_id = None
+                existing.status = "QUEUED"
+                existing.error_code = None
+                existing.updated_at = utcnow()
+                self.session.add(
+                    OutboxEvent(
+                        event_id=f"evt_{uuid.uuid4().hex}",
+                        event_type="analyze.job.requested",
+                        schema_version=1,
+                        correlation_id=correlation_id,
+                        payload={"analysis_id": existing.id, "user_id": user_id},
+                    )
+                )
+            self.session.commit()
             return existing
 
         self._require_quota(user_id, plan)
@@ -114,6 +131,49 @@ class AnalyzeJobService:
             select(AdHocJobAnalysis).where(AdHocJobAnalysis.idempotency_key == key)
         )
         if existing is not None:
+            status, _ = self._derived_status(existing)
+            if status == "SUCCEEDED":
+                return existing
+
+            artifact = (
+                self.session.get(PrivateAiArtifact, existing.private_artifact_id)
+                if existing.private_artifact_id
+                else None
+            )
+            if artifact is None:
+                artifact = PrivateAiArtifact(
+                    user_id=user_id,
+                    artifact_type="PASTED_JOB_ANALYSIS",
+                    idempotency_key=f"private-ai:{key}",
+                    status="QUEUED",
+                    input_hash=digest,
+                    input_snapshot={"job_description": normalized_text},
+                )
+                self.session.add(artifact)
+                self.session.flush()
+                existing.private_artifact_id = artifact.id
+            else:
+                artifact.status = "QUEUED"
+                artifact.error_code = None
+                artifact.updated_at = utcnow()
+
+            existing.status = "ANALYSIS_QUEUED"
+            existing.error_code = None
+            existing.updated_at = utcnow()
+            self.session.add(
+                OutboxEvent(
+                    event_id=f"evt_{uuid.uuid4().hex}",
+                    event_type="private.ai.requested",
+                    schema_version=1,
+                    correlation_id=correlation_id,
+                    payload={
+                        "artifact_id": artifact.id,
+                        "user_id": user_id,
+                        "artifact_type": "PASTED_JOB_ANALYSIS",
+                    },
+                )
+            )
+            self.session.commit()
             return existing
         self._require_quota(user_id, plan)
         artifact = PrivateAiArtifact(

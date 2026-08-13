@@ -133,3 +133,27 @@ def test_public_url_is_fetched_into_shared_corpus_and_reuses_structured_analysis
         repeated = service.request_public(str(USER_A), "FREE", url, "v" * 36)
         assert repeated.id == row.id
         assert database.scalar(select(func.count()).select_from(AdHocJobAnalysis)) == 1
+
+
+def test_failed_analysis_is_overridden_on_re_request_and_purged_on_delete(
+    session_factory: sessionmaker[Session],
+) -> None:
+    url = "https://jobs.example.invalid/job/failed-1"
+    with session_factory() as database:
+        seed_user(database)
+        service = AnalyzeJobService(database)
+        row = service.request_public(str(USER_A), "FREE", url, "f" * 36)
+        row.status = "PERMANENT_FAILED"
+        row.error_code = "JOB_PAGE_UNSUPPORTED"
+        database.commit()
+
+        # Re-requesting the failed URL overrides the failed state and re-queues it
+        retried = service.request_public(str(USER_A), "FREE", url, "r" * 36)
+        assert retried.id == row.id
+        assert retried.status == "QUEUED"
+        assert retried.error_code is None
+
+        # Purging/deleting the analysis removes it from storage
+        service.delete(row.id, str(USER_A))
+        assert database.scalar(select(func.count()).select_from(AdHocJobAnalysis)) == 0
+
