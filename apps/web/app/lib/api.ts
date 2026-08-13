@@ -25,9 +25,14 @@ async function loadCsrfToken(): Promise<string> {
   if (localToken) return localToken;
   if (remoteCsrfToken) return remoteCsrfToken;
 
+  // Dev mode: backend skips CSRF for synthetic dev users, so a placeholder suffices.
+  if (syntheticLocalUser) {
+    remoteCsrfToken = "dev-csrf-placeholder";
+    return remoteCsrfToken;
+  }
+
   const response = await fetch(`${apiBase}/auth/csrf-token`, {
     credentials: "include",
-    headers: syntheticLocalUser ? { "X-DireHire-User-ID": syntheticLocalUser } : undefined,
   });
   const body = await response.json().catch(() => null);
   if (!response.ok) {
