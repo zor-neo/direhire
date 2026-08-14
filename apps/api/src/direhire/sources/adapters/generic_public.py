@@ -38,10 +38,12 @@ class GenericPublicAdapter:
                 if not isinstance(organization, dict) or not isinstance(address, dict):
                     continue
                 values = {
-                    "external_id": str(item.get("identifier", {}).get("value", ""))
-                    if isinstance(item.get("identifier"), dict)
-                    else "",
-                    "url": str(item.get("url", "")),
+                    "external_id": str(
+                        item.get("identifier", {}).get("value", "")
+                        if isinstance(item.get("identifier"), dict)
+                        else item.get("identifier") or source_url or ""
+                    ),
+                    "url": str(item.get("url") or source_url or ""),
                     "title": str(item.get("title", "")),
                     "company": str(organization.get("name", "")),
                     "location": ", ".join(

@@ -440,11 +440,13 @@ class PublicAnalyzeJobProcessor:
         self.session.commit()
         try:
             html = self.fetch(row.normalized_url)
-            candidates = GenericPublicAdapter().discover_jobs(html)
+            candidates = GenericPublicAdapter().discover_jobs(
+                html, source_url=row.normalized_url
+            )
             exact = [
                 candidate
                 for candidate in candidates
-                if normalize_public_url(candidate.url) == row.normalized_url
+                if candidate.url and normalize_public_url(candidate.url) == row.normalized_url
             ]
             selected = exact[0] if exact else candidates[0] if len(candidates) == 1 else None
             if selected is None:
