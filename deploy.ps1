@@ -7,14 +7,15 @@ $FRONTEND_BUCKET = "direhire-prod-$ACCOUNT_ID-frontend"
 $CLOUDFRONT_DIST_ID = "E14N4HGYQK61ZM"
 
 $TAG = (git rev-parse --short HEAD).Trim()
+$IMAGE_URI = "${ECR_REGISTRY}/${REPO_NAME}:${TAG}"
 Write-Host "=== Deploying DireHire Release $TAG to $REGION ===" -ForegroundColor Cyan
 
 # 1. Build and Push Backend Docker Image
 Write-Host "`n--- 1/4 Building and Pushing Docker Image ($TAG) ---" -ForegroundColor Yellow
-docker build --provenance=false -t direhire/runtime:$TAG -f Dockerfile .
+docker build --provenance=false -t "direhire/runtime:$TAG" -f Dockerfile .
 aws ecr get-login-password --region $REGION | docker login --username AWS --password-stdin $ECR_REGISTRY
-docker tag direhire/runtime:$TAG $ECR_REGISTRY/$REPO_NAME:$TAG
-docker push $ECR_REGISTRY/$REPO_NAME:$TAG
+docker tag "direhire/runtime:$TAG" $IMAGE_URI
+docker push $IMAGE_URI
 
 # 2. Update All 8 Production Lambda Functions
 Write-Host "`n--- 2/4 Updating All 8 Lambda Functions ---" -ForegroundColor Yellow
@@ -33,7 +34,7 @@ foreach ($fn in $LAMBDAS) {
     Write-Host "Updating Lambda function: $fn..."
     aws lambda update-function-code `
         --function-name $fn `
-        --image-uri $ECR_REGISTRY/$REPO_NAME:$TAG `
+        --image-uri $IMAGE_URI `
         --region $REGION `
         --output text `
         --query "FunctionName"
