@@ -7,6 +7,8 @@ from direhire.ai.contracts import JOB_ANALYSIS_PROMPT_VERSION, JOB_DEMAND_SCHEMA
 from direhire.errors import NotFoundError
 from direhire.models import Job, JobDemandProfile, JobVersion, JobWatch, UserJob, WatchMatch
 
+_FAILED_STATUSES = frozenset({"DEGRADED_FAILED", "RETRYABLE_FAILED", "PERMANENT_FAILED"})
+
 
 class InboxService:
     def __init__(self, session: Session) -> None:
@@ -121,6 +123,15 @@ class InboxService:
         matched_watches = [{"id": w_id, "name": w_name} for _, w_id, w_name in watch_matches]
         return self._read(user_job, job, version, profile, matched_watches)
 
+    def delete(self, user_job_id: str, user_id: str) -> None:
+        row = self.session.scalar(
+            select(UserJob).where(UserJob.id == user_job_id, UserJob.user_id == user_id)
+        )
+        if row is None:
+            raise NotFoundError()
+        self.session.delete(row)
+        self.session.commit()
+
     @staticmethod
     def _read(
         user_job: UserJob,
@@ -129,6 +140,13 @@ class InboxService:
         profile: JobDemandProfile | None,
         matched_watches: list[dict[str, str]] | None = None,
     ) -> dict[str, object]:
+        analysis: dict[str, object] | None = None
+        if profile is not None and profile.profile is not None:
+            raw = profile.profile
+            if isinstance(raw, dict):
+                analysis = raw.get("content", raw)
+                if not isinstance(analysis, dict):
+                    analysis = None
         return {
             "id": user_job.id,
             "job_id": job.id,
@@ -140,6 +158,6 @@ class InboxService:
             "status": user_job.status,
             "created_at": user_job.created_at,
             "analysis_status": profile.status if profile is not None else "NOT_REQUESTED",
-            "analysis": profile.profile if profile is not None else None,
+            "analysis": analysis,
             "matched_watches": matched_watches or [],
         }

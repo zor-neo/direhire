@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Annotated, Literal
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
@@ -58,3 +58,9 @@ def update_inbox_status(
 @router.post("/{user_job_id}/retry-analysis", response_model=InboxItemRead)
 def retry_inbox_analysis(user_job_id: str, user: User, session: DbSession) -> object:
     return InboxService(session).retry_analysis(user_job_id, str(user.id))
+
+
+@router.delete("/{user_job_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_inbox_item(user_job_id: str, user: User, session: DbSession) -> Response:
+    InboxService(session).delete(user_job_id, str(user.id))
+    return Response(status_code=204)

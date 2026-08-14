@@ -8,6 +8,7 @@ from direhire.models import (
     AiModelPolicy,
     Job,
     JobDemandProfile,
+    JobVersion,
     JobWatch,
     NotificationDigest,
     OutboxEvent,
@@ -156,4 +157,88 @@ def test_failed_analysis_is_overridden_on_re_request_and_purged_on_delete(
         # Purging/deleting the analysis removes it from storage
         service.delete(row.id, str(USER_A))
         assert database.scalar(select(func.count()).select_from(AdHocJobAnalysis)) == 0
+
+
+def test_legacy_key_row_is_found_and_migrated(
+    session_factory: sessionmaker[Session],
+) -> None:
+    """Old rows created before key versioning are found via legacy key fallback."""
+    import hashlib
+
+    url = "https://jobs.example.invalid/job/legacy-42"
+    with session_factory() as database:
+        seed_user(database)
+        service = AnalyzeJobService(database)
+
+        # Create a row with the old (unversioned) key format directly in the DB
+        from direhire.sources.validation import normalize_public_url
+
+        normalized = normalize_public_url(url)
+        digest = hashlib.sha256(normalized.encode()).hexdigest()
+        legacy_key = f"analyze:{USER_A}:PUBLIC_URL:{digest}"
+        old_row = AdHocJobAnalysis(
+            user_id=str(USER_A),
+            input_type="PUBLIC_URL",
+            idempotency_key=legacy_key,
+            normalized_url=normalized,
+            status="PERMANENT_FAILED",
+            error_code="JOB_PAGE_UNSUPPORTED",
+        )
+        database.add(old_row)
+        database.commit()
+
+        # Re-requesting the same URL should find the legacy row and override it
+        retried = service.request_public(str(USER_A), "FREE", url, "m" * 36)
+        assert retried.id == old_row.id
+        assert retried.status == "QUEUED"
+        assert retried.error_code is None
+        # Key should be migrated to the versioned format
+        assert ":v2:" in retried.idempotency_key
+        # No duplicate row was created
+        assert database.scalar(select(func.count()).select_from(AdHocJobAnalysis)) == 1
+
+
+def test_queue_public_job_analysis_requeues_failed_profile(
+    session_factory: sessionmaker[Session],
+) -> None:
+    """queue_public_job_analysis re-queues failed profiles instead of silently returning them."""
+    from direhire.ai.service import queue_public_job_analysis
+
+    url = "https://jobs.example.invalid/job/requeue-1"
+    html = f"""
+    <script type="application/ld+json">
+    {{
+      "@type": "JobPosting",
+      "identifier": {{"value": "requeue-1"}},
+      "url": "{url}",
+      "title": "DevOps Engineer",
+      "hiringOrganization": {{"name": "Queue Labs"}},
+      "jobLocation": {{"address": {{"addressLocality": "Bangkok", "addressCountry": "TH"}}}},
+      "description": "Deploy and maintain cloud infrastructure for a fictional product."
+    }}
+    </script>
+    """
+    with session_factory() as database:
+        seed_user(database)
+        service = AnalyzeJobService(database)
+        row = service.request_public(str(USER_A), "FREE", url, "q" * 36)
+        completed = PublicAnalyzeJobProcessor(database, lambda _: html).process(
+            row.id, "q" * 36
+        )
+        demand = database.get(JobDemandProfile, completed.demand_profile_id)
+        assert demand is not None
+
+        # Simulate a failed profile
+        demand.status = "DEGRADED_FAILED"
+        demand.error_code = "AI_OUTPUT_INVALID"
+        database.commit()
+
+        # queue_public_job_analysis should reset and re-queue
+        version = database.scalar(
+            select(JobVersion).where(JobVersion.job_id == completed.job_id)
+        )
+        requeued = queue_public_job_analysis(database, version, correlation_id="z" * 36)
+        assert requeued.id == demand.id
+        assert requeued.status == "QUEUED"
+        assert requeued.error_code is None
 

@@ -44,9 +44,7 @@ class AnalyzeJobService:
         )
         normalized = normalize_public_url(url)
         key = self._key(user_id, "PUBLIC_URL", normalized)
-        existing = self.session.scalar(
-            select(AdHocJobAnalysis).where(AdHocJobAnalysis.idempotency_key == key)
-        )
+        existing = self._find_existing(user_id, "PUBLIC_URL", normalized, key)
         version = self.session.scalar(
             select(JobVersion)
             .where(JobVersion.source_url == normalized)
@@ -127,9 +125,7 @@ class AnalyzeJobService:
             )
         digest = hashlib.sha256(normalized_text.encode()).hexdigest()
         key = self._key(user_id, "PASTED_TEXT", digest)
-        existing = self.session.scalar(
-            select(AdHocJobAnalysis).where(AdHocJobAnalysis.idempotency_key == key)
-        )
+        existing = self._find_existing(user_id, "PASTED_TEXT", digest, key)
         if existing is not None:
             status, _ = self._derived_status(existing)
             if status == "SUCCEEDED":
@@ -404,6 +400,27 @@ class AnalyzeJobService:
         v_num = JOB_DEMAND_SCHEMA_VERSION
         v_prompt = JOB_ANALYSIS_PROMPT_VERSION
         return f"analyze:{user_id}:{input_type}:{digest}:v{v_num}:{v_prompt}"
+
+    @staticmethod
+    def _legacy_key(user_id: str, input_type: str, value: str) -> str:
+        digest = hashlib.sha256(value.encode()).hexdigest()
+        return f"analyze:{user_id}:{input_type}:{digest}"
+
+    def _find_existing(
+        self, user_id: str, input_type: str, value: str, current_key: str
+    ) -> AdHocJobAnalysis | None:
+        row = self.session.scalar(
+            select(AdHocJobAnalysis).where(AdHocJobAnalysis.idempotency_key == current_key)
+        )
+        if row is not None:
+            return row
+        legacy = self._legacy_key(user_id, input_type, value)
+        row = self.session.scalar(
+            select(AdHocJobAnalysis).where(AdHocJobAnalysis.idempotency_key == legacy)
+        )
+        if row is not None:
+            row.idempotency_key = current_key
+        return row
 
 
 class PublicAnalyzeJobProcessor:

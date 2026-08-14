@@ -18,6 +18,28 @@ def queue_public_job_analysis(
         )
     )
     if profile is not None:
+        if profile.status == "SUCCEEDED":
+            return profile
+        # Re-queue failed/degraded profiles instead of silently returning them
+        if profile.status in (
+            "DEGRADED_FAILED",
+            "RETRYABLE_FAILED",
+            "PERMANENT_FAILED",
+        ):
+            from datetime import UTC, datetime
+
+            profile.status = "QUEUED"
+            profile.error_code = None
+            profile.updated_at = datetime.now(UTC)
+            session.add(
+                OutboxEvent(
+                    event_id=f"evt_{uuid.uuid4().hex}",
+                    event_type="job.analysis.requested",
+                    schema_version=1,
+                    correlation_id=correlation_id,
+                    payload={"profile_id": profile.id, "job_version_id": job_version.id},
+                )
+            )
         return profile
     profile = JobDemandProfile(
         job_version_id=job_version.id,
